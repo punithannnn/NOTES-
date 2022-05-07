@@ -1,0 +1,833 @@
+ANSIBLE :
+=============
+configuration management tool: configuration can be task performed on servers(hosts),,
+it can be : installing /updating /removing s/w (pkg), copy files, changing permission on the file, start/stop/restart - process , creating/deleting user, group 
+ so far we have done configuration manually.. 
+ connected to server and executed commands manually : prob with manual configuration: Time consuming and error prone 
+=============	
+ANSIBLE is a configuration management tool :  can also use as deployment tool (for scripts )
+2 types : 1. pull based 2. pushed based 
+ansible is push based conf management tool , puppet and chef are pull based 
+ pull based : conf management server : in server we need to have AGENTS(s/w)-> will pull the configuration from the server 
+push based : Agentless cfm tool.. dont need agents in the server..central server will push the configuration 
+can trigger ansible playbooks with jenkins.. 
+configure m/c agentless using ssh
+written in python language.. playbooks are written in yaml files
+====================
+ANSIBLE ARCHITECTURE:
+====================
+1.Host inventory  :  details of host machines (server details: ip address, hostname and ssh keys ) 
+ 2 types : static Inventory: static file  in which we can list and group static file-> def loc - etc/ansible/hosts
+ Dynamic Inventory: script(python/shell) which will fetch host details (server det) dynamically from EXTERNAL SOURCES such as aws, azure, database 
+ if infra is not changing frequently : static else go for dynamic 
+ -------
+2.Playbooks: Tasks which we want to execute host machines
+written in yaml 
+- hosts: all 
+   tasks:
+   -  name: Install git 
+        yum:      # module
+		      name: git 
+			  state: present
+// this tasks are executed under hosts 
+---------------------------
+3.Core Modules : tasks are written using modules.. using modules we will write playbooks.. we have 100 of modules  module is a python script 
+----------------------------
+4.Custom Modules: to write custom module need to know python.. we can use existing modules by default 
+----------------------------
+5.Connection Plugins: use connectin plugins to connect m/c .. winrm : connection plugin to connect to windows server .. for linux : ssh( connection plugin)
+-----------------------------
+we use modules to write playbooks 
+moboxterms : ssh client software , RDP : to connect to remote desktop 
+Ansible connects to windows machines: Winrm ( connection plugins)
+can we install ANSIBLE in windows : NO(as master).. using ansible we can sonfigure windows ( node)
+====================
+ANSIBLE INSTALLATION:
+=====================
+use case: do configuration in server execute playbook we can do this from jenkins pipeline instead of doing this manually.. and maintain host inventory in scm
+git-clone, ansible-playbook(invoke) in jenkins master
+ it is not mandatory to create ansible user :
+         1  sudo useradd ansible // create one user and setting pwd 
+         2 sudo passwd ansible 
+// give sudo access ( with ec2-user modifying visudo file and giving sudo access to ansible user)
+         3 visudo
+        4 ansible ALL=(ALL) NOPASSWD: ALL
+          5  vi /etc/ssh/sshd_config -> passwordauthentions yes(uncomment this) and comment passwordauthentions no
+         6  sudo service sshd restart // restart sshd service
+         7 sudo su ansible  // switch to ansible user not ask pwd as we set pwd authentication
+         8 sudo yum install python3 -y  // install python
+         9  python3 --version
+         10 sudo alternatives --set python /usr/bin/python3 // python3 points to python 
+         11 sudo yum -y install ---------epel-release-latesy  -y //package manager
+         12 sudo yum install ansible -y 
+         13  ansible --version
+          -------------------
+          using ansible want to connect to machines: create two servers in ec2 : port : 22 open in sec group 
+          provide host servers ip address : ( 2 servers) def loc /etc/ansible/hosts
+          take server ip addresses (private ip ) coz public ip changes 
+         14 sudo chown ansible: ansible -R /etc/ansible     // change ownership of host file recursively 
+           15  vi /etc/ansible/hosts  // editing the hostfile and giving other 2 servers ip address 
+            172.34.45.68
+            172.31.65.35
+          16  ansible all -m ping 
+            host_key_checking : yes 
+            // installed ansible created 2 servers and updated server details in host inventory 
+ =====================================
+    connect to machine installed ansible.. switch to ansible user  sudo su - ansible
+    using ansible we have to configure servers.. in Ansible we have concept of host inventory  details of 2 servers we updated  in /etc/ansible/hosts 
+    check if ansible can connect to this two machines :
+                 ansible all -m ping ( all : part of static inventory,m : module) // does ssh connectivity      
+Error: failed to connect via ssh 
+/etc/ansible/hosts : provided server ip's  now testing ssh connectivity  with ansible user.. so error 
+because we have installed ansible with ansible user but other machines 2default user in ec2-user 
+in host inventort mention  ipadress ansible_user -ec2-user or --> {ansible all -m -u username ping}
+=======================================
+ways to ssh : un and pwd , un and pem file 
+create a ansible user in other instance and ssh mention even the pem file 
+[ipaddress    ansible-user=ec2-user     ansible_ssh_private_key_file=~/Devopsfive.pem  // similarly for other instance as well
+   pem file in laptop open in notepad++ ->copy  in ansible machine home directory : vi Devops.pem( file permission only ansible user shud have access to pem file): copy the content .. in host inventory give the path of pem file path : chmod 400(read) Devopsfive.pem
+   execute ansible all -m ping: // now successfully ssh to servers of 2 instance 
+==============================
+   or 2) way user ansible user in other ec2 instance  ip ansible_user= ansible ansible_password =
+   or already able to ssh now can create user in 2 instance with playbook itself rather than manually :
+   # ansible <group/host Name> -m ping -u <userName> --private-key=~/devops.pem
+# ansible-playbook -b ansible-createuser.yml -u <userName> --private-key=~/devops.pem
+
+- hosts: all                                                                // all tasks in inventory file 
+  tasks:
+  - name: Create Ansible User
+    user:                                                                  //module 
+      name: ansible
+      create_home: true                                   //create home dir
+      shell: /bin/bash                                        // with shell access 
+      comment: "Ansible Management Account"
+      expires: -1
+      password: "{{ 'DevOps@2020' | password_hash('sha512','A512') }}"
+  - name: Deploy Local User SSH Key
+    authorized_key:                                  // copy ssh key from current machine to ansible user
+      user: ansible
+      state: present
+      manage_dir: true
+      key: "{{ lookup('file', '/home/ansible/.ssh/id_rsa.pub') }}"
+  - name: Setup Sudo Access for Ansible User
+    copy:
+      dest: /etc/sudoers.d/ansible
+      content: 'ansible ALL=(ALL) NOPASSWD: ALL'  // creating an entry for ansible user in sudoers file 
+      validate: /usr/sbin/visudo -cf %s
+  -  name: Disable Password Authentication // copying ssh so disable password based authentication
+     lineinfile:
+        dest=/etc/ssh/sshd_config
+        regexp='^PasswordAuthentication'
+        line="PasswordAuthentication no"
+        state=present
+        backup=yes
+     notify:
+       - restart ssh
+  handlers:
+  - name: restart ssh   // change in ssh file so restart ssh 
+    service:
+      name=sshd
+      state=restarted
+
+-------------------------------------------------------------------------------
+1.creating a user giving sudo access to user modifying sshd file and restart it 
+we can do this configuration in ansible we can use shell script why ansible : coz it has already predefined modules 
+--------------------------------------------------------------------------------
+vi credentials.yml
+// in above playbook ssh id we are copying bt first we have to generate ssh keys .. 
+          ssh-keygen
+          two types blanks : 2 files id_rsa and id_rsa.pub generated
+          using this playbook copy the key to ansible machine
+          Exec playbook : ansible-playbook credentials.yml
+          
+      Error: failed to create ansible user : useradd : only root user can create users here as ec2-user we cant create users if we give sudo ansible-playbook that will nt work so for this there is a concept called PREVILAGE ESCALATION
+  =========================
+    PREVILAGE ESCALATION:  perform the task as root user
+  =========================
+      -b : become root user 
+      ansible-playbook -b credentials.yml
+      // Ansible user is now created copied the ssh keys.. 
+      can use dedicated user to perform task .. previlage escalaion: tasks are executed as root user
+      2nd time if we execute o/p ok else changed 
+      ------------------------------
+      ANSIBLE IS IDEMPOTENT: IF THE CONFIGURATIONS ARE ALREADY THERE IT WILL NOT MAKE ANY CHANGES  UNTIL THERE IS CHANGE IN THE SCRIPT .
+      --------------------------------
+      update the password to devops@2021 : task changed is only one .. 
+      ssh keys are at user level(ansible) not at system level(ec2 -user)
+      1. ssh connection for ansible configuration
+      one more istance in host inventory file mention [ipaddress user pem file]
+============================
+ANSIBLE ADHOC COMMANDS:
+===========================
+1. ansible  -version
+2. ansible <groupname/hostname> -m <modulename> -a <args>
+3.ansible all -m ping
+4.ansible-doc -l  // to see modules supported by ansible
+modules :   
+shell, command, user, copy, service, yum, apt, package, template 
+----------------------
+Infrastructure as a code :  Terraform, cloud formation in aws why not ansible cos : ANSIBLE (configuration as a code)WILL NOT MAINTAIN STATE OF THE INFRASTRUCTURE..if we execute playbook 10 times for ec2 instance created 10 times coz it will not maintain infra.. Vagrant ( Iac in VM's )
+---------------------------
+provision the infra thru terraform configure infra through ansible 
+Ansible has host inventory(list of servers) need ssh connection to servers need some configuration change  we will write playbooks .. we have modules for docker also 
+ansible doc -l | grep "copy"
+ansible doc -l | grep "user"
+ansible doc yum // mode details about the module 
+--------module : python script 
+Ansible use some interpreter to execute python scripts.. 
+-----------------------------------
+shell module :  execute commands on host machine 
+command module:  execute commands take not processed through shell var like $HOME | < will not work 
+---------------------------------------
+ansible all -m command -a df -kh 
+ansible all -m command -a ls 
+ansible all -m shell -a "cat /etc/*release"
+// ansible help linux admins 
+whether git available installed or not in all machines 
+ansible all -m shell -a "git-version"
+==================================
+shell script is for automation for backup 
+k8s is container orchestration tool.. ansible is configuration tool: we can setup  self managed k8s cluster using playbook.. in host inventory file mention master and node machines ..for EKS no need of ansible ..commands we can have in playbooks as tasks.. ansible playbook we can deploy to applications.. use case normal tomcat 10servers deploy war in 10 tomcat servers we can use ansible 
+===================================
+when we add new machine it is asling for hostkeyverification.. suppose we dont want that prompt when running via scripts
+there is a file called SETTING FILE : ansible.cfg : vi /etc/ansible/ansible.cfg : 
+search hostkeychecking (uncomment this in line no 71)
+add one more ec2 instance in host file  : ip user pem file : now no prompt are you sure you want to connect to server 
+======================
+group servers in host inventory : data base servers, web servers  
+[appserver]
+172.31.65.11
+[dbserver]
+172.34.44.11
+ if any server does not belong to any group have to mention it before any group header starts at the top 
+ ansible dbservers -m command -a df -kh : to run command on dbserver 
+ ansible all -m command -a df -kh : to run command on all servers
+ =================
+ // if we want to permanantly change the default location of inventory file : we can update in ansible.cfg file  by 
+ export ANSIBLE_HOSTS=/root/custom_ansible_hosts
+ temperarily want to change location by executing playbook 
+ ansible all -- inventory-file = /root/ansible_hosts (path of if) -m ping 
+ Custom Inventory : if in different location.. default location : etc/ansible/ansible-cfg
+ ==================
+ shell module and command module : are not IDEMPOTENT.. command is getting executed multiple time if sshd started again it will start 
+ ansible all  -b( previlage escalation) -m  shell -a  "service sshd start"
+ ==================
+ yum : install/upgrade /remove packages with yum package manager 
+ ansible all -b -m yum -a "name=git status=latest(upgrade version)/absent(remove package)/present(install current version)"
+can check the attritubutes by command : ansible doc yum
+apt : for ubuntu or debian can use cpndiional statement when 
+all windows modules start with win_
+win_chocolatey: package installer in windows 
+package : install package irrespective underlying os linux/debian/windows 
+ansible doc package
+ansible appserver -m  -b( previlage escalation) package -a "name=git state=present"
+try to execute this one more time : it will not install again.. if any new server added in that group if git is not installed then it will install : IDEMPOTENT: if we run the command multiple times if there is no change in the configuration if it is already present it will not make any change 
+to uninstall : you can use state : absent 
+===============
+Use case : 
+1. want to install httpd software : ansible all -b -m yum -a " name=httpd state=present"
+------------------
+2. copy index.html  : ansible all -b -m copy -a "src=index.html   remote_src=yes dest=/var/www/html/index.html"        // for copy module directory should already      be present : file module : to manage file create dir if it is not present
+remote_source=yes( file copy from within to same m/c like cp command if it is no then scp)
+source in one ec2 instance copy to other ec2 inst : first fetch file from host machine to ansible machine : 
+fetch module : from remote location to local m/c (copy )
+falt: yes ( copy in destination with fetch module even though it is destionation it will create a dir inside that the path where we mentioned there it will create dont need this so use flat : yes.. cannot fetch folder/directories usinf fetch module )
+HOW TO COPY FILE FROM REMOTE M/C TO REMOTE M/C USING ANSIBLE: fetch the file copy module 
+1.fetch the file:  ansible 172.31.23.90 -b -m fetch -a "src=/home/ec2-user/index.html dest=/home/ansible falt=yes
+2.copy the file: ansible 172.31.23.90 -b -m copy -a "src=/home/ec2-user/index.html dest=/home/ansible 
+file already in ansible machine only use : copy module 
+----------------------
+3. start httpd service in app server: ansible appservers -b -m service -a "name=httpd state=started"
+
+WHY WRITING TASKS IN COMMANDS NOT RECOMMENDED: COZ HAVE TO EXECUTE LOT OF COMMANDS INSTEAD OF THIS WE CAN WRITE ALL TASKS IN SINGLE PLAYBOOK AND CAN MAINTAIN PLAYBOOK AS SRC CODE IN VCS SO THAT CAN TRACK WHAT CHANGES HAS HAPPENED TO PLAYBOOK 
+index.html file is not there in local machine so create file vi index.html 
+==================
+PLAYBOOK:
+==================
+playbook: have multiple play in pb 
+play : set of tasks for the host in inventory file 
+
+---
+- hosts: appservers
+   tasks:
+   -  name:<nameoftask>
+       <module>:
+               <arg>: <val>
+                   <arg>:<val>
+     - name:  <nameoftask>
+       <module>:
+               <arg>: <val>
+               <arg>:<val>        
+ 
+  - hosts: Dbservers
+   tasks:
+   -  name:<nameoftask>
+       <module>:
+               <arg>: <val>
+                   <arg>:<val>
+       <module>:
+               <arg>: <val>
+               <arg>:<val>  
+====================
+---
+-  hosts: appservers
+    become:  true   --- previlage Escalation
+    tasks:
+    -  name:  install httpd
+        yum:
+              name:  httpd
+               state: present
+   -  name:    copy index.html
+       copy:    
+           src:  index.html 
+           dest:  /var/www/html/index.html
+    - name:  start httpd service
+        service:
+            name: httpd
+            state:  started         
+      < -------  ansible-playbook puni.yml--------->
+      ================
+      PLAYBOOK: contains set of plays each play contain set of tasks this tasks will be executed on the given hosts.. playbook are in the form of yml files ..
+      we can variables and handlers also .. within one playbook we can have multiple plays 
+      YML: yet another markup launguage.. data serialization languageto  store some info. similar to json and xml.. uses IDENTATION..
+      commonly used to create configuration files, manifests files in kubernetes.. most of yaml files we follow 2 spaces. yaml giving parsing error : indentation is not correct 
+comments: #
+syntax: key: val pair ( data represented)
+string:
+str: |  -> symbol to represent file with multiple lines 
+2.list: array.. hold multiple value for same key 
+shopping:
+-milk
+-eggs
+-juice
+or  shopping: [milk, eggs, juice]
+-----
+3) Dictionary: collection of key val pair property of employee info 
+employee:
+     name:
+      job:
+ -----
+Array of dictionaries:
+employee:
+ -   name:
+       job:
+       skills:
+       -    python 
+       -    perl
+-   name:
+       job:
+       skills:
+       -    python 
+       -    perl
+=================
+Multi document support: use 3 dashes  --- 
+---
+-  hosts:  webservers
+    become:  yes
+    tasks:
+    -  name:    ensure apache is at latest version
+            yum: name= httpd state=latest
+    -  name: ensure apache is running
+            service: name=httpd state=started
+ ---------------------
+ To follow identation better to use: IDE( integrated development environment) visual studio code, sublime test, pycharm
+ k8s use go language to read yaml's/
+ terraform is open src harshicope configuration language(HCL): IAC create infrastructure through code rather than creating it manually 
+ python is used for development as well as scripting language 
+ install visual studio code : and push it to scm tools.. create yaml file in vscode copy and paste in vi editor 
+ vi pb.yml
+ the way we maintain jenkins file, docker file, ansible playbooks  in scm tools 
+ you can also check indentation: with yaml editor 
+ dry run/mock run in ansible : not actually do configuration simulate whether the conf will work or not : ansible-playbook p.yml --check
+ uninstall software : state=absent yum name= state=absent
+ to remove file - file module: state: absent,  file path= state=absent  
+ to check syntax: ansible-playbook ansible --syntax-check.. if identation is not correct :we will get parsing error..
+=====================
+--syntax-check : check syntax 
+--check: to do a dry run 
+in yaml file can use become: true/yes  for previlage escalaion
+to create folder : file : path =  state=present
+===================
+variables , conditions, tags, vault, role , dynamic inventory, handlers, tower : enterprise software (ui for ansible)
+HOW TO RUN ANSIBLE IN VERBOSE MODE : TO CHECK ADDITIONAL LOGS 
+ansible-playbook pl.yml -v   :
+ansible-playbook pl.yml -vv : more logs
+ansible-playbook pl.yml -vvv: triple verbose 
+logs also we have info, debug level 
+ansible-playbook <playbookname> --list-hosts:  list server details executed in the playbook 
+ansible-playbook <playbookname> --step:  execute tasks step by step ask for confirmation 
+-------------
+WANT TO EXECUTE SPECIFIC TASKS IN ANSIBLE : USE TAGS 
+--step ( can also do but without human intervention can do it by tags for each task 
+
+-hosts:
+ become:
+ tasks
+ - name:
+    yum:
+          name:
+           state:
+     tags:
+      -   install 
+      
+     ansible-playbook p.yml --tags <tagname>
+     ansible-playbook p.yml --tags "install":3 tags executed withtag as install.. we can also give tags with comma seperated 
+     ansible-playbook p.yml --tags "install, copy"
+     --------can also skip tags  ansible-playbook p.yml --skip-tags "install"
+     ansible-playbook p.yml --list-tags : to see what all tags we have given 
+     -------------------
+     in playbook can we limit playbook execution for some group in hosts -l : limit : ansible-playbook p.yml -l appservers: // though we have all mentioned in pb -l limits the execution to only servers of group appservers 
+     limit execution to specific group as well as tags : ansible-playbook p.yml -l 172.34.56.78 --tags "install"
+     ==============
+     template module :
+     to copy file we have dynamic content replace content with values ( var replaced )
+     refer variable in ansible  {{ }}: jinja templating 
+     cat index.html
+     welcome {{name}}
+     cat p.yml : we have not defined variable anywhere we have used copy module for index.hrml  copy src: index.html dest: /var/www/html/index.html 
+     execute playbook: ansible-playbook p.yml 
+     o/p : welcome {{name}}
+     TO REPLACE VARIABLES WITH VALUE: TEMPLATE : copy the file process template replace variable used in the module 
+     template 
+     src:
+     dest:
+     Error : we have to define variables 
+     -------------
+     variable types:
+     1. Runtime :(--extra-vars) can also pass variable at runtime 
+     ansible-playbook p.yml --extra-vars name=bangalore:
+     2.Playbook: define var in playbook 
+     scope is within playbook 
+     vars:
+          name: Bangalore --> now file is copied and variable name is reflecting : welcome bangalore 
+          template:
+               src: index.html
+               dest:  /var/www/html/index.html
+               
+               cat index.html 
+               welcome {{name}}
+               precendence : Runtime var
+     3.Group
+     4.Host 
+     can define seperate file for only var : vi httpdvars.yml 
+     key value pairs 
+     name: punitha 
+     location: bangalore
+     // to include variable from another file we have to mention var_files : in playbook with file name 
+         hosts :
+        vars_files:
+          -   httpdvar.yml // filename 
+          at playbook level 
+          // loading variable from seperate file 
+          for each env we can maintain seperate file and refer to that variables
+          
+          for different env we can pass like this as well :
+          var_files:
+           -    " {{env}}_httpdvars.yml" ( ""  should be there if var in playbook)
+           ansible-playbook p.yml --extra-vars env=development / env=production// now values are taking dev variable file 
+           diff values we can use for different environment
+           // is it possible to load variables from files :load /import vars from files 
+  ===========================
+  debug module: to print messages while exec pb , to see what variable executed-------- like echo in shell script 
+  var and variable name 
+  hosts:
+  vars:
+       env:dev
+    vars_files: 
+    -   "{{env}]_p.yml"
+  tasks:
+  -   name: print env variable 
+       debug:
+             var:env
+  Execute playbook env var is dev
+  //pass at run time 
+  ansible-playbook p.yml --extra-vars env=prod 
+  // runtime will take precendence
+  ---------> we can also print some messages--------->
+  debug:
+       messages: "using var files: {{env}}_p.yml"
+// debug : to print messages or variable values 
+============
+USECASE: 
+install jenkins using ansible playbook :
+
+-hosts:
+  become: true 
+  tasks:  
+   - name: download jenkins release file 
+         get_url(wget):
+             url:
+             dest:
+   -  name:     import jenkins rpm key 
+           rpm_key:
+                key:
+                 state: present
+     -  name: install java 
+              yum: jave-11-openjdk-devel
+                  name:
+                       state: present
+     -   name: install jenkins
+                 yum:
+                         name: jenkins 
+                              state: present
+    -  name: get initial admin pwd 
+              shell: cat /var/lib/jenkins/secrets/initialAdminpassword 
+              register:jenkinsadminpass  (o/p of shell can be stored with register module)
+    -   name: print jenkins pass
+             debug:
+                   var: jenkinsadminpass.stdout
+                   
+ TO DELAY EXECUTION FOR SOMETIME: wait_for module
+ -  name: halt playbook execution for 30 seconds
+      wait_for:
+          delay: 30
+             port: 8000
+ enable jenkins at boot strap : systemd modulestop and start sever automatically it will start 
+ -   name: start jenkins
+       service:
+           name: jenkins
+           state:  started   
+ -  name: enable jenkins 
+         systemd: 
+             name: jenkins
+              enable: true
+-------> jenkins uses package called deomanize manually we will --epel-release package  with yum module it will fail we have to download 
+- name:
+        yum: epel-package rpm link (has deamanize package for jenkins)
+        state:
+        disable-gpg_check: true
+        
+ 
+package 
+     1. importing repo key , importing key for validation , installing java and then installing jenkins and get initial pwd of jenkins 
+      ----------------
+      we can use state =latest to install latest version 
+ ====================================
+ - hosts:
+    var_files:
+    -   varsfile.yml
+    -    varsfileone.yml
+    tasks:
+    // as part if tasks or in template we can refer the variables in jinja template 
+ ================
+ include_vars module: load variables 
+- hosts:
+   tasks:
+    -  name:
+        include_vars:
+              file: <varfilepath>
+===============
+3) group vars: var defined in pb can only , 1ll and spcific group reffered in only that this is defining variables at group level 
+
+vi cpyfile.yml 
+- hosts: all 
+   become: true
+    tasks:
+    -   name:
+         template:
+             src: test.txt
+             dest:
+      -  name:
+              shell:
+               register:
+        -   name:
+             debug:
+                  var: 
+ test.txt file 
+ welcome {{name}}
+ // while executing var error coz var is undefined 
+can define by 
+- hosts: all 
+   become: true
+   vars: 
+       name: puni
+   ===> var is defined in playbook ======> 
+   pass at runtime values will be same for all servers in host inventory file 
+runtime : ansible-playbook p.yml --extra-vars name=balaji 
+variable value shud be changed based the servers we define in host inventory :
+use group vars and host vars 
+-------> we can create group vars in the place where we have host inventory : etc/ansible/hosts
+1. folder names : group_vars and host_vars 
+mkdir /etc/ansible/group_vars : folder 
+vi /etc/ansible/group_vars/all.yml
+all.yml 
+   name: balaji // value will be same for all servers 
+ no need of explicitly load also 
+ run th copyfile. yaml : create a file etc/ansible/group_vars/all.yml : irrespective of group and host value is coming from all.yml 
+ ===============
+ var value should be diff for group 
+ file name: should be group name 
+ group_vars 
+     all.yml ( all servers)
+         name: nimu
+     appservers.yml (server group name)
+           name=from app server 
+      dockerservers.yml (server group name)
+            name=pp   
+  // same pb copy.yml for group take group value for other servers it will take balaju name 
+  create filename= one in the inventory
+  vi /etc/ansible/ group_vars/apservers.yml 
+  name=puni 
+  ===============
+  I WANT TO INSTALL GIT VERSION IN DB SERVER WANT TO INSTALL DIFF VERSION IN APP SERVER DIFFERENT VERSION :
+  
+group_vars 
+     all.yml ( all servers)
+          package=git 1.1
+     appservers.yml (server group name)
+              package=   git 1.2
+      dockerservers.yml (server group name)
+           package=   git 1.3
+ 
+ -hosts: all 
+    tasks:
+      -  name:
+           yum:
+                name:{{ }}
+  ========
+  PRECENDENCE:
+  Runtime
+  playbook vars
+  hostvars
+  groupvars
+  =================
+  4. hostvars: define variable at system level 
+  folder name: host_vars 
+   mkdir /etc/ansible/host_vars
+   vi /etc/ansible/host_vars/ip.yml 
+   name: from puni
+   take value from hosts for that server then groupvars:
+   to download diff version of packages : can use group_vars concept 
+   ==================================================
+   LOOPS: to execute some tasks repeatedly 
+   install git , vim, wget, curl, using ansible 
+   - hosts: all 
+     tasks:
+      - name:
+          yum:
+                name:git
+                 state: present
+      tasks:
+      - name:
+          yum:
+                name:vim
+                 state: present 
+   // same code same modules only values are changing so we can use concept of loop  can use [] or
+   with_items: 
+   -
+   -
+   -
+   -
+   name="{{}}}"
+   with_items is getting deprecatting can use []
+   -----> 
+   1)
+      - hosts: all 
+     tasks:
+      - name:
+          yum:
+                name:['git', 'vim', wget']
+                 state: present
+ 2)
+    - hosts: all 
+     tasks:
+      - name:
+          yum:
+                name:"{{items}}"
+                 state: present
+           with_items:
+              -  git
+              -  wget
+              -   curl
+ ============
+ create users :
+ - hosts: all 
+     tasks:
+      - name:
+             user:
+                 name:"{{items}}"
+                 create_home: yes
+              with_items:
+                 -  balaji
+                 -   puni
+                 or can pass list of dictionaries also 
+                 
+ with_items:
+  -  {'name': '  balaji' , 'createhome': 'yes'}
+  -   {'name': '  balaji' , 'createhome': 'no'}    
+
+to copy files to different destination: 
+   - hosts: all 
+     tasks:
+      - name:
+         copy:
+              src:"{{item.source}}"
+              dest:"{{item_dest}}"
+               mode:
+          with_items:
+            -   {'source': "text.txt", 'destination': "/opt/text.tct", 'mode', : '077'}
+            -   {'source': "/tmp/abc.txt", 'destination': "/tmp/text.tct", 'mode', : '044'}
+==============
+CONDITIONS: unless until condn satisfy done perform the task.. perf some conditions on some variable or ANSIBLE FACTS : using  
+when:  
+
+----> ANSIBLE FACTS: --------->
+gathering info abt hosts : what type of os 
+module used : set up ( to gather facts)
+ansible all -m setup 
+// info abt m/c what version of os, python version, storage details, disk details : info abt host 
+
+hosts: all 
+become: true 
+gather_facts: no 
+tasks:
+-  name:
+     yum:
+          name: httpd
+           state: present
+      when: ansible_os_family=="Redhat"
+    
+when: (ansible_facts['distribution']=="centos" and ansible_facts['distribution_major_version']=="6") or      (ansible_facts['distribution']=="Debian" and ansible_facts['distribution_major_version']=="7"
+  register : based on previous task o/p can execute task store o/p of command using register variable
+==============
+ignore_errors: yes : task level ignoreerrors even though one task is failed it will execute the next task 
+==================
+ANSIBLE VAULT : want to maintain configuration data have to maintain it in form of secrets 
+vi createuserpass.yml 
+car etc/ansible/hosts 
+132.34.23.34 ansible_user=ansible ansible_password = sdver2@52 --> host inventory file 
+ENCRYPT VARIBLE FILE : 
+ansible_user=ansible ansible_password = {{ssh_password}}--> host inventory file 
+define var 
+vi etc/ansible/group_vars/all.yml
+ssh_password=124@sdver
+------> now taking var again we are keeping this variable file in scm so not recommended so use ANSIBLE VAULT ENCRYPT file 
+======>
+ansible- vault encrypt <filename.yml> : encypt file created 
+ansible- vault create <filename.yml> : create file and encrypt it 
+ansible- vault decrypt 
+ ansible- vault edit 
+ ansible- vault view
+ ansible- vault rekey
+ 
+ ansible-vault encrypt p.yml 
+ // when encrypting we need to set vault pwd 
+ encryption is successfully
+ since encrypted 
+ ansible all -m ping 
+ //execute any playbook encrypt file is being referred in host inventory is reffering var is referring the var that is encrypted no need to decrypt it we can pass VAULT Password
+ -> ansible all -m ping --ask-vault-pass :
+ // give the vault pwd to process the variable in Hi 
+ ansible-playbook p.yml --ask-vault-pass : to run the playbook with vault password 
+ vault is encrypt file : 
+ ansible-playbook p.yml --vault-password-file=`/vaultpass 
+ vault pass : has tst format or can have as secret text in jenkins 
+we have file in encrypted format want to edit that file : 
+1.decrypt edit and again encrypt 
+2.without decrypt can do by using edit one who knows vault pass 
+ansible-vault edit a.yml 
+permanantly decrypt fie :
+ansible-vault decrypt p.yml 
+rekey: we can reset the vault password.. it will ask existing pwd
+ansible-vault rekey p.yml 
+============
+how to deal with confidential data in ansible: vault 
+==============
+HANDLERS : special tasks execute(not by default) some task has to notify the handler or trigger .. handlers execute at the end of play after executing all the tasks 
+tasks: set of task performed on host machined executed one after the other 
+// change in var task will get executed 
+notify:
+      restart
+handlers:
+-   name: start
+      service:
+          name:
+          state:
+===========
+ANSIBLE ROLE :
+with more complexity diff to understand playbook if we write all in same file we cant even re-use and code maintainance diff 
+role: set of tasks, handlers 
+roles can be used in pb.. 
+PREDEFINED DIRECTORY STRUCTURE :tasks in one file, var in one file 
+ANSIBLE GALAXY: create roles , upload  roles , share roles manage roles 
+create role 
+ansible-galaxy init <rolename>
+// create a pre-defined structure 
+httpd
+    defaults
+         main.yml---------
+     vars
+         main.yml
+      tasks
+           main.yml
+      handlers
+            main.yml
+      files
+         templates
+              meta
+                   main.yml
+                   // vars will take the precendence
+to refer role in playbook
+
+-hosts: appservers
+  become: true
+   roles:
+    -  httpd
+    // now pb is very simple all handlers and tasks are part of role 
+    better readability and code maintainance 
+    ==========================
+    ROLES : have predefined  directory structure 
+    everything written in single playbook all tasks handlers 
+    create role for playbook :
+    ansible-galaxy init rolename (httpd)
+    // this will create dir with predefined dir structure with some files 
+   folder: tasks, handlers, templates, files 
+   tree httpd 
+   now we have to create tasks, handlers and variable define vars in vars folder main.yml or default folder main.yml 
+   vi vars, tasks, handlers we can maintain all this maintain files in files folder 
+   to test role locally : template: jinja template same as copy but this 
+   // run playbook 
+   ansible-playbook -i  -b httpd/tests/inventory httpd/tests/test.yml 
+   expecting ssh connection 
+   in inventory file 
+   localhost ansible_connection=local
+   // can have roles and tasks as well : task: debug : but not best practice 
+   // we can maintain playbooks in SCM and can use this in automation using ansible 
+  
+  node{
+  agent{
+  label "ansible"
+  ansible-playbook -i hosts st.yml --extra-vars http_port=9090
+  ====================
+  static inventory : 
+  dynamic inventory : it is python /shell which will FETCH details from EXTERNAL SOURCES like aws 
+  static inventory : list of all the host details in text file 
+  ========
+  plugins: aws_ec2
+  regions:
+  -   ap-south-1
+  filters:
+     instance-state-name: running 
+   keyed_groups:
+   -   key: tags, name
+         prefix: ""
+           seperator: ""
+        hostnames:
+         -    provtae-ip-address
+         compose:
+                ansible_host: provat_ip_address
+                ======
+                Ansible tower : GUI for ansible(enterprise version)
+                
+  
+
+  
+      
+ 
+
+
+
+
+
+
+
