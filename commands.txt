@@ -1,0 +1,780 @@
+LINUX COMMANDS :
+=================
+NAVIGATION AND DIRECTORY CONTROL COMMANDS:
+1.mkdir: create directory
+ mkdir devops 
+2.rmdir: delete directory
+rmdir devops
+3.rm: remove or delete file or directory
+rm -r(del dir)
+4.touch: create a empty file 
+touch filename
+5.ls: lists contents of your dir
+ls -ltr puni 
+l: long format, t: sorts by access time, R: recursively all dir and files, -a:all hidden files begin with . , -i: lists inode number , -d: shows name of dir not contents , -r: disp in reverse order , -s: dis file size
+6.cd: change directory
+cd dir/ cd <path/dir>
+cd .. to move to one dir up, cd ~: home dir , cd -: previous dir
+Absolute path: cd local
+Relative path: cd /usr/local
+7.pwd: print working dir 
+8.tree: list contents of dir in tree like format 
+===================================
+FILE MAINTAINANCE COMMANDS:
+1. find: to search file or dir within  given dir  based on conditions 
+find . -name mithun.sh: search for filel in ome dir 
+find . -type f -empty: search all empty files 
+find .-mtime -1: find files modified less than 1 day 
+find . -type -f -perm 0777: search all files which has permissions 777
+
+2.locate: search for a location of a file
+locate crontab: search for file which has crontab word
+3.umask: set permissions for files and directory
+umask 222 puni.txt
+4.chmod: change the file access permissions
+ chmod <options> <perm> <file/dir>  === chmod ugo+rwx puni.txt
+5.chown: change file owner or group 
+chown puni devops.txt  : only root user can execute above two commands
+6.chgrp: change file group 
+chgrp devops puni.txt
+7.cp: to cpoy file contents from one file to another 
+cp filename destinationDir ====== cp puni.txt  Devops 
+To copy from dir to dir user -r options : recursively 
+cp -r family/ mummy/
+8.mv: to move or RENAME file
+mv originalfile renamedfile 
+diff with mv and cp : mv: ctrl c and paste cp: ctrl x and paste 
+9.file: to check what type of file 
+file imp.txt --- o/p ASCII text 
+10. wc: count number of lines, words, bytes ,char in a file 
+wc -l puni.txt(lines) , wc -w (words)
+11.ln: create a link between files
+ln filename linkfilename -- ln puni.txt lnhard.txt
+Hard Link: In real time we will not have access to some dir if we use cp cmd also contents keeps changing so create a ln file contents also changes 
+same size as orginal file , inode number is same 
+Soft link: pointer to file , size is different , inode number is different
+ln -s pu.txt lnsoft.txt
+===========================
+TEXT EDITOR COMMANDS:
+
+1.vi: vi filename -- text editor vim also 
+i: insert mode, :wq: write and quit 
+vim also text editor more functionalitie.. : get colore -- :se nu: set line number , :se no nu: go to line number , : syntax on: to get colors as per prog language , dd : to del line 
+2. nano: text editor
+nano filename 
+ctrl-o save ctrl-x close 
+
+=========================
+TEXT READING OR DISPLAY COMMANDS:
+
+1.echo: to print some msg same system.out.println()
+echo "puni"
+2.cat: Display contents of file 
+cat filename 
+cat -n filename : disp file contents with line number 
+3.head: print first 10 lines of file to std o/p
+by default 10, we can spec the number also with -n option:
+head -n 25 puni.txt(fn)
+4.tail: Display last 10 lines by default 
+tail -n 30 p.txt
+3.sed: stream editor
+1.To display a range of lines 20-30 inlarge file:
+sed -n "linenumbep" fn ====== sed -n "109-200p" p.txt
+2. To replace one word with another :
+to replace red with blue in a file first occurence: --s (sting pattern)
+sed "s/red/blue" p.txt 
+to replace red with blue in a file all occurence:-- g (global)
+sed  "s/red/blue/g" p.txt
+sed replace but still file has red color to UPDATE the contents in a file : -i 
+sed -i "s/red/blue/g" p.txt
+
+4.more: Traverse page content only in forward direction 
+5.less: Traverse page content both directions 
+ctrl-f: forward , ctrl-v: backward , ctrl-c: Terminate process , ctrl-Z: suspend process
+6.jobs:To see how many jobs in suspended state 
+7.sort: sort O/P in numeric or alphabetic order
+sort -r p.txt(reverse)
+8.|: give o/p of cmd as i/p to other using pipe 
+can use more than one cmd using this 
+cat p.txt|sort|tr(translate) [a-z][A-Z]
+9.grep: global regular expression print 
+To search for something in a file 
+grep aishu friends.txt
+=================================
+SYSTEM RESOURCE COMMANDS:
+
+1.who:Display current users working on the system
+2.w: show who has logged in and what they are doing 
+3.uptime: How many hours back server restarted 
+4.users: Disp list of users logged into the system 
+5.whoami: Disp current user info who has given this cmd 
+6.whereis: path to locate Manual page files of a cmd : whereis ls 
+7.date: print or set system date and time : date -s 20130618
+
+8.df: (disk free)In harddisk how much space utilized for file system 
+df -h(human readable form) , mountpoint: how many hard disks attached to linux server 
+9.du: (disk usage)In harddisk how much space utilized for files/directories
+du -h -(home dir)
+10.hostname: disp or set server hostname 
+11.ifconfig or hostname -i or ip a: To find the ip address.. we cannot rem ip so we set hostnames
+
+12.man: we know cmd dont know options we can use man cmd: to get more details of the cms
+man mkdir: manual pages gives for what mkdir used and its optionss 
+13.info: get help doc of that part cmd 
+mkdir --help: info abt cmd 
+14.whatis: man gives detailed info abt cmd but we want only short cut of cmd then use whatis mkdir 
+
+15.service/systemctl: when we install a s/w it will create a service
+systemctl list-unit-files: lists all the servies 
+service jenkins start/stop/restart/status
+16.last: shows last logged in user 
+======================================
+PROCESS MANAGEMENT COMMANDS:
+
+1.ps: (process state) Disp current process running 
+Disp all process id created by normal user , root user 
+ps -ef(formatted way )
+want to know process id of java: ps -ef|grep java 
+we want to stop jenkins server but not able to stop sp first get process id and then use KILL cmd : ps -ef | grep jenkins 
+2.kill: kill the process,, if we try to stop service and it wont then we use kill cmd 
+kill -9 PID 9-- signal types 
+9:- SIGKILL , 6-SIGABRT , 3- SIGQUIT
+3.top:Disp linux tasks, To know SERVER, CPU, RAM utilization can use this cmd 
+top
+4.sar: system Activity Report : To find resource utilization 2 DAYS BEFORE 
+===================================
+ARCHIVE/DATA BACKUP COMMANDS:
+
+1. zip: package and compress archive file 
+we have devops file of size 10gb want to downlod this into laptop download more time so create a zip of file 
+zip -r devops.zip devops/  (-r add files and sub dir of dir)
+2.unzip: to see contents of zip file in laptop have to unzip/ to Extract compressed files into laptop
+unzip devops.zip -d(dir path) /tmp
+2.tar: another type of archive file 
+tar -cvf devops.tar Devops/ (cvf: create verbos files)
+tar -xvf devops.tar( xvf: extract verbose files)
+=============================================
+USER/GROUP ADMINISTRATOR COMMANDS:
+
+1.useradd: To create a new user acct.. only root user can execute this 
+useradd punitha: this creates a directory in home dir 
+to create a user in diff dir: useradd -d /opt/punitha
+2.passwd: to change user's password
+passwd punitha 
+pwd stored in : cat /etc/shadow
+3.chage: To see user rel details like user disable time , add attributes like pass expiry , send notification 
+chage bhaskar
+4.groupadd: create new group only root user can exec this cmd 
+groupadd devops (groupname)
+5.usermod: to add users to group 
+# usermod -g devops(groupname) puni(username)
+6.id: To check punitha user is added to how many groups 
+id punitha 
+usermod -l username : lock user 
+usermod -u username : unlock user 
+7.userdel: remove user acct (rrot)
+8.groupdel: delete group(rrot user only exec)
+
+9.su: SWITCH USER.. to come out of user press ctrl -d or exit or logout 
+su - punitha 
+su - root: to switch to root user 
+10.sudo: Exec command as root user 
+sudo su - : switch from normal user to root user 
+#TO GIVE ROOT ACCESS TO SOME USER 
+Visudo etc/sudoers 
+ALL=ALL : enter for that user like ec2-user 
+11.Crontab: Schedule jobs.. To automate task to exec commands everyday 2'o clk 
+service crond status: check if any issue with crontab 
+syntax: min (0-59) hours(0-23) Day of month(1-31) month(1-12) week(0-6) command/scrip 
+ */1 * * * *  /home/ec2-user/hello.sh : Every onemin crontab will trigger 
+      REDIRECTION SYMBOLS :
+  when running a crontab want to redirect o/p to file we use redirection symbols 
+  crontab -l 
+  RS:   > : Redirect standardo/p 
+  */1 * * * * /home/ec2-user.hello.sh >hello/ec2-user/op.log
+       FILE DESCRIPTORS:
+ 0 - syd i/p, 1- std o/p 2 - std error 
+ update crontab: crontab -e ------crontabgenerator.org link 
+ 
+/dev/null: if we redirect o/p to a file it will occupy space so /dev/null.. null is a device in dev directory .. if we give any o/p to null device it will make size as zero 
+Remove crontab: crontab -r 
+To see some user crontab: crontab -l -u punitha(root user)
+=============================
+REMOTE ACCESS COMMANDS:
+
+1.ssh: secure shell : To connect to server 
+SSH CONNECTION BETWEEN 2 SERVERS:
+1.login to both Ec2 instances:
+2.Generate ssh-key in first instance :
+#ssh-keygen 
+3. copy PUBLIC KEY from 1st inst to 2nd:
+#ssh-copy-id username@2ndhostname/ip
+4.Test configuration:
+#ssh username@2ndhostname
+
+ENABLE PWD LOGIN INSTEAD OF PEM FILE IN EC2 INSTANCE:
+1.login Ec2 inst with pem file switch to root user:
+ssh -i "pu.pem" ec2-user@puni.aws.com
+sudo su - 
+2.set password for ec2-inst:
+passwd e2-user
+3.update password authentication parameter in :
+/etc/ssh/sshd_config
+           vi etc/ssh/sshd_config 
+           passwordAuthentication yes 
+4.Restart sshd service:
+service sshd restart 
+
+2.SCP: to copy files from server to other server 
+# scp filename username@hostname: PATH 
+scp puni.txt ec2-user@142.22.34.45 /tmp 
+To copy directory : use -r option 
+
+===================================
+HARDWARE INFO COMMANDS:
+
+1.Free: to find the amt of RAM free and used in the system 
+free -h:  RAM (-k -g -m( kilo , giga, mega)
+df -h: Harddisk 
+2.dmidecode -t 17: gives the RAM info like type of RAM (sdram, ddr1, ddr2, ddr3) , speed manufacture : root user 
+3.vmstat: gives virtual memory statistics 
+
+===============================
+COMMUNICATION COMANDS:
+
+1.mail: send and recieve mail .. to send mail we have to configure SMTP server 
+2.clear: to clear screen
+3.wget: To download s/w into linux server 
+wget url 
+3.Curl: TO download s/w ,, suppmore protocols, pass API : can interact with server programmatically 
+curl -o softwarefilename url (-o output) 
+curl -o maven.zip url 
+4.tee: used for both store and o/p of a cmd 
+ls > filename : redirected then we see the content 
+ls |tee puni.txt: display the content in console and redirect the o/p to a file 
+5.Script: Records your login session in a type script in current directory 
+After script tag type some commands all that will be recorded to stop recprding : type exit 
+cat typescript: to see the content 
+6.ping: to check connectivity of one server tp other .. send ICMP echo requests to network hosts
+ping google.com : check whether we are able to acces or not 
+if we get o packet loss no issue with connectivity : 100% packet loss then check with network team 
+7.telnet: Along with connectivity want to check if particular port is enabled in remote server or not 
+telnet google.com 80 
+8.history: to check all cmds executed till now .. default: 1000 cmds are stored ..
+To cleare history: history -c 
+9.uname: to see server name 
+uname:  o/p-- linux  uname -a: server name with ip address , uname -v : kernel version , -r: lernel release 
+10.netstat: to see which port is being used by which service 
+netstat -tunlp .. one service can use one port .. jenkins ony port 8080
+11.watch: can exec cmds periodically 
+want to exec date cmd every 5 sec 
+watch -n 5 date 
+If we want to run a cmd in minutes we can use : crontab 
+12.shutdown: to shutdown server(root user)
+sudo shutdown 
+shutdown -c : to stop shutdown 
+13.exit or logout or ctrl-d or restart or reboot:
+
+================================
+STREAM EDITOR COMMANDS:
+
+1.awk: search file for test containing a pattern ..when line /text matches perform action on that  line/text 
+awk 'operation/pattern' filename 
+awk ''{print $1 $5}' student.txt: print first and fifth column 
+def values; NR: line number 
+NF: number fields 
+FS: field seperator 
+OFS: o/p field seperator 
+ awk '{print $NR}' student.txt: Disp line numbers of file 
+ 
+ #===========================================#==================================================#
+ SHELL SCRIPTING COMMANDS:
+ 
+ 1.$0: filename of script 
+ 2.$!: PID of background running process/cmd 
+ 3.$$: PID of current running process 
+ 4.$?: Exit status of last cmd executed if it returns 0: success else not successful 1 : fail 
+ 5.$#: no of arguments passed to shell script it returns 
+ 6.$*: all arguments are returned as a string 
+ 7.$@: All arguments as a individual string 
+ 8.$n: returns position of argument 
+ #!: shebang 
+ 
+ REDIRECTION SYSMBOLS:
+ >: Redirect o/p , < : i/p , >>: append o/p 
+ file descriptors: 0-i/p  1-o/p 2-Error 
+ To redirect both o/p and error using file descriptor : sh puni.sh a v > clarg.log 2 > &1
+ 
+ #==========================================#=====================================================#
+GIT COMMANDS:
+
+1.Configure Email and pwd :
+git config --global user.name "puni":
+git config --global user.email "punithanarasimha@gmail.com":
+2.git init : To create a local empty git repo 
+3.git status: gives the status of untracked files.. to check whether file in WA, SA, LR
+3.git add */fn : To move files from Working area  to Staging area 
+4.git commit -m "initial commit": commit file from staging area to local repository 
+or git commit -a -m "initial commit" : no need of git add seperately 
+5.git remote add origin <remoterepourl>: Mapping the local repo with remote repo 
+6.git remote -v: gives the alias name of remote repo we have set: ex origin 
+7.git remote show origin: give info on part origin 
+8.git remote remove origin: remove remote origin 
+9.git push origin master: push changes in local Repo to github remote repo 
+10.git push origin master -f: to revert the changes from remote repo 
+11.git push origin --all: pusj all branches code to remote repo 
+12.git push origin --delete bugfix: Delete a remote branch in the repository 
+13. git config --global http.sslVerify false: To disable SSl certificate globally for all repositories 
+
+===============================
+.gitignore: what ever files and dir not needed can be kept here so that it will NOT BE COMMITED along with project code 
+pullrequest: updated code in dev branch can be integrated to master branch in remote repo with pull request in local repo can do it by git merge.. create a new pull request ..Assign approver senior team member review code and approve the pull request then we can merge the PR 
+
+1.git clone <remoterepourl>: To checkout code from remote repo to local repository for the  first time 
+2.git pull origin master: To get updated code from remote repo to local repo and it will merge with local working copy also 
+RR-LR-WA 
+#git pull= git fetch+git merge 
+if we dont have updated code in WA go with git pull 
+3.git fetch origin master: To get updated code from remote repo to local repo but will not merge with local working copy 
+RR-LR
+#git fetch origin master 
+#git merge origin master 
+=================================
+1.git log: gives all commit id's history 
+git log -2: disp 2 commit id's 
+2.git reflog: gives all the commit id history which are even ammended (changed).. can recover a branch deleted with git reflog command 
+3.git show --pretty="" --name-only <<commitid>>: disp all files committed in that particulat commit 
+4.git show <commitid>: shows what files in commit id and what changes are made 
+5.git cherry-pick CID: pick commit id's from one branch and integrate to other branch 
+6.git log --one-line: gives details of comit in single line 
+7.git blame filename: know who/ which commit responsible for latest change 
+
+=================================
+1.git reset filename: move file from SA to WA.. deletes the commit history 
+git reset <CID> modes : 
+hard : removes the commit id's from LR  SA and WA (undo changes made in LR, SA, WA)
+soft: Removes from LR
+mixed: Removes from LR and SA 
+2.git revert <CID>: delbad commit.. preserves the commit history 
+3.git commit --amend -m "chanemessage": fix broken commit /change the commit message 
+
+=================================
+1.git branch : to check how many branches are there 
+2.git branch branchname: create a branch 
+3.git checkout branchname: to switch from one branch to another 
+4.git diff branchname: to check diff btwn one branch to another 
+4.git merge origin barnchname: to integrate one branch to another 
+5.Merge conflict: in both branches updated same file at same line .. open file update file correctly and commit again 
+6.git checkout -b branchname: create a new branch and switch to that created branch 
+7.git branch -d branchname: delete branch in LR 
+8.git push origin --delete branchname: delete branch in remote repo 
+9.git branch -a: Disp both remote and local branches 
+10.git branch -r: Disp remote repo branches 
+11.git branch --merged: to check if branch is merged or not 
+12.git branch --no-merged: gives list of branches not merged 
+13.git pull rebase:
+14.git merge squash: combine multiple commits to single commit 
+15.git bisect: does binary search to find bug commit 
+
+=====================================
+1.git tag tagname: After prod deployment we create tag cannot change this during developement we create branches 
+2.git tag: check tage created 
+3.git tag -d tagname: delete tags created 
+
+1.git stash : doing developement inbetween have to fix some prod issue so take code available in WA and move to temporaru location stack 
+2.git stash list: lists how many backup's are there 
+3.git stash apply /git stash apply stash@{2}: apply specific backup set 
+4.git stash drop/git stash drop stash @{2}: delete recent or specific back up set 
+5.git stash pop: apply+drop --> apply recent backup and delete it 
+
+1.rm filename: remove files from WA 
+2.git rm filename: remove file from both WA and SA 
+3.git rm --cached filename: remove file from SA 
+4.ls : lists files in WA 
+5.git ls-files: lists file tracked by git 
+6.git diff <srcciD> <dest CID>:
+   git diff master feature :
+   git diff HEAD file.txt: diff btwn working area and last commit 
+   git diff --staged file.txt: diff btwn SA and LR 
+   =============================================
+   MERGE AND REBASE:
+  1.Both are for integrating one branch with other :
+  2. merge after integrating it will have seperate merge commit id preserves history :
+  3.Rebase moves the feature branch to tip of the master branch forming a linear structure.. it does not preserve history .. rewrites the histroy:
+  4.Rebase is not recommended for shared repo(remote repo) as reverting rebase would be difficult :
+  
+  #===================================#======================#========================
+  MAVEN COMMANDS:
+  
+  1. mvn clean install -DskipTest:  To skip test cases 
+  or mvn clean install -Dmaven.test.skip=true :
+  2.M2_HOME/conf/settings.xml: change default location of .m2 file local repo 
+  3.
+  
+  #=================================#==========================#===================
+  SONAR COMMANDS:
+  
+  1. mvn sonar(plugin):sonar(goal):
+  2.change port no: conf/sonar.properties file = sonar.web-port=9000
+  
+ #========================#==========================#===============================
+ NEXUS COMMANDS:
+ 
+ 1.mvn clean deploy: To copy the final package into remote repo for sharing with developers others and project 
+ 2.settings to be done to deploy to remote repo: 1. in pom.xml file under DISTRIBUTIONMANAGEMENT tag gives repo details 
+  2.in settings.xml file-- give nexus credentials.. both id's in pom.xml should match 
+ 3.change port: /etc -nexus-default-properties : change port and restart nexus 
+ 
+ #=================================#=================================#=====================
+ TOMCAT:
+ 
+ 1.change port no : in server.xml change the connector port.. restart tomcat service 
+ 
+ #=================================#==================================#==================
+ JENKINS:
+ 
+ 1.forget password how to recover: in /var/lib/jenkins config.xml file update <usersecurity> =false 
+ 
+ jenkins pipeline:
+ 
+ node{
+ 
+ agent any 
+ 
+stage("SCM checkout")
+{
+ sh 'git credentialsID= ' '  branch=' ' repourl='''
+}
+stage("Build source code')
+{
+sh 'mvn clean package'
+}
+stage("Execute test cases")
+{
+sh 'mvn clean sonar:sonar'
+}
+stage("upload artifacts to Atifactory")
+{
+sh 'mvn clean deploy'
+}
+stage("build docker image")
+{
+sh ' docker build -t <imagename> .'
+}
+stage("push docker image to container repository")
+{
+sh 'docker login -u "" -p ${DOCKER_HUB_PASSWORD}'
+sh 'docker push <imagename>/reponame
+}
+stage("import artifacts to udeploy")
+{
+pushuDeployVersion
+(
+components[
+botlite-ui-path
+]
+)
+}
+}
+
+
+ #===============================#================================#============================
+DOCKER COMMANDS:
+
+DOCKER FILE:
+
+FROM container.cisco.com/tomcat8.0.1-custom
+MAINTAINER lae_home 
+USER root 
+EXPOSE 8080
+COPY target/maven-web-application.war  /usr/local/tomcat/webapps/maven-web-application.war 
+RUN  echo "running an image"
+CMD ${JWE_HOME}/bin/serverStart.sh 
+
+DOCKER INSTRUCTIONS:
+
+1.FROM: base image to build our own image 
+FROM ubuntu:latest 
+2.MAINTAINER: Author or owner of docker file 
+MAINTAINER puni punitha@gmail.com
+3.COPY: copy files from host server to docker server 
+COPY src dest -- copu target/.war usr/local/tomcat/webapps/java-web-application.war
+4.ADD: copy files from host server to docker server 
+ADD URL dest --- ADD https://puni.com/test.tar.xz /home/ubuntu/test
+diff : copy local files from host server also download files from remote https location 
+5.RUN: To Exec linux commands while creating a image 
+RUN wget 
+
+6.CMD: To Exec linux commands while ereating a container 
+CMD sh catalina.sh run : shell form 
+or CMD ["java" , "-jar" , springapplication.jar"]: executable form 
+shell form: cmd running as CHILD PROCESS  under /bash/sh 
+/bin/bash -c java -jar spring application.jar -c child process 
+Executable form: cmd run as MAIN PROCESS 
+/bin/java -jar springapplication.jar 
+     Executable from preferred because when killing/stopping container if we use she;; form SIGNAL TERMINATION goes to bash : killing parent process and child process will not be aware of this so java process: WILL NOT RELEASE RESOURCES 
+
+DIFF: we can have n no of RUN instructions.. cant have multiple CMD only last CMD /recent line will be processed while creating a container 
+
+7.ENTRYPOINT: Exec cmds while creating a container 
+DIFF: CMD can be overriden while creating a container .. ENTRYPOINT cannot be overriden 
+if both CMD and ENTRYPOINT are there in docker file --> CMD command PASSED AS ARGUMENT FOR : ENTRYPOINT
+CMD sh 'catalina.sh'
+ENTRYPOINT ["echo", "message"]
+
+or CMD LS 
+ENTRYPOINT ['echo","hello"]
+O/P : echo hello ls 
+
+8.WORKDIR: to set current working directory of image/container 
+WORKDIR /usr/local/tomcat : all subsequent run instructions are processed i this directory 
+9.EXPOSE: Indicate port used in the image 
+EXPOSE 8080
+10.ENV: to set env variable with key and value for container : container level ,, ARG : image level 
+ENV tomcat_version 8.2.4
+11.USER: to set username while running container 
+USER admin 
+//create new user 
+RUN adduser -D admin 
+user admin 
+12.LABEL: metadata info in key value add labels to image 
+LABEL  branch develop 
+13.ARG: Define variable in docker file 
+can use in other instruction(ENV like )
+ARG JAVA_PATH =/opt/jdk/jdk1.8.0 
+ENV JAVA_HOME= $[JAVA_PATH}
+14. VOLUME: map folder /file if container deleted want to retain details use vol 
+mount container folder with system folder 
+Attach vol to docker container 
+VOLUME <file/folder> -- VOLUME /node 
+15.ONBUILD: in docker file all instructions are processed.. ONBUILD commands are processed when the IMAGE (in df)-- used ad BASE IMAGEfor another image 
+ONBUILD copy package.json /usr/node/app 
+ONBUILD RUN npm install 
+16.STOPSIGNAL: signal sent to containerto exit 
+STOPSIGNAL SIGQUIT 
+17.SHELL: set default shell 
+SHELL ["/bin/bash" "-c", "echo hello]
+18.HEALTHCHECK: check container health by running command inside container 
+HEALTHCHECK --interval =60s --timeout=5s\
+CMD curl -f http --/
+19 .dockerignore: unwanted files are added here 
+sudo nano .dockerignore 
+.yaml, .git, .aws, .env 
+
+DOCKER COMMANDS:
+========================
+1.docker info: disp docker server info , how many images , containers stopped cpu mem 
+2. docker version : client and server version 
+
+Build Image:
+3. docker build -t <imagename> . (build context) : create a image
+private repo: docker build -t <IP/hostnameofrepo>:<repoPORT>/<reponame> :<version>
+docker build -t 172.34.56.78:8083/maven-web-application:4 :
+public repo: docker build -t <registry name>/<reponame> :<version>
+docker build -t dockerhandson/maven-web-application:3 :
+
+Authenticate with Repo:
+public repo :
+4.docker login -u <username> -p <password> 
+private repo: 
+docker login -u <username> -p <password>  <URL>
+
+Push image to repo:
+5.docker push <imagename>
+public repo: docker push dockerhandson/maven-web-application
+private repo: docker push  172.34.56.78:8083/maven-web-application:4
+
+Downlaod image from repo:
+docker pull <imagename>
+public repo: docker pull dockerhandson/maven-web-application
+private repo: docker pull 172.34.56.78:8083/mavem-web-application
+
+IMAGE COMMANDS:
+======================
+1.docker images or docker image ls : list images 
+2.docker images -q: returns onlu image ids 
+3.docker inspect <imageid>: inspect docker images 
+4.docker history <imageid/name>: to lists only layers of iamge 
+5.docker rmi <imageid/name>: delete images 
+docker rumi -f  <imageid/name>: we cant remove images if they are RUNNING CONTAINER FOR THE IMAGE : if CONTAINER IS IN STOPPED STATE we can FORCE DELETE image for the stopped container 
+6.Dangling image: image without repo mapping 
+7.docker rmi -f $(docker images -q): to delete all the images 
+8.docker system prune: will delete all stopped containers , unused networks and dangling images 
+9.docker image prune: will delete dangling images 
+10. docker tag <imagename> <reponame>: to tag images with multiple repositories
+11. /var/lib/docker: home directory of docker 
+12. docker images --filter or -f  dangling =true: to list all dangling images
+13.docker rmi $(docker images -f dangling=true -q): to delete all dangling images 
+14.docker container prune: remove all stopped containers 
+15.docker network prune: remove all networks not used by atleast one container 
+
+==================
+
+Copy images from one server to another without docker hub/repo:
+docker save -o <filename>.tar <imagename> : to save image as a tar file 
+THEN SCP TAR FILE FROM SOURCE TO DESTINATION SERVER 
+docker load -i <filename>.tar : in destination server 
+
+===================
+CONTAINER COMMANDS:
+=======================
+1.docker run  --name <contname> -p <hostport>:<containerport> <imagename>: create a container 
+2.docker run -d --name <contname> -p <hostport>:<containerport> <imagename>: create a container in detached mode 
+3.docker create --name <contname> -p <hostport>:<containerport> <imagename>: 
+4.create and run difference: create only cerate a container but it will not start cont , run will create a start the container 
+5.docker run -it --name <contname> <image> : create a container in interactive mode 
+6.docker ps: list running containers 
+7.docker ps -a: list all containers 
+8.docker ps -q: list running container IDs
+9.docker ps -aq: list all container IDs
+10.docker start <contid/name>: start the container
+11.docker stop <contid/name>: stop the container
+12.docker restart <contid/name>: restart the container 
+13.docker kill <contid/name>: kill container 
+diff DOCKER STOP AND DOCKER KILL : stop will first send SIGTERM then SIGKILL.. it will kill process with grace period 
+DOCKER KILL send SIGKILL it will kill process without any grace period 
+14.docker pause <contid/name>: pause container-> not respond to any requests coming to container
+15.docker unpause <contid/name>: unpause container 
+16.docker inspect <contid/name>: inspect container 
+17. docker rm <contid/name> : remove if container is stopped 
+18.docker rm -f <contid/name>: force remove if container is running 
+19 docker rm $(docker ps -aq --filter status="exited"): to delete only STOPPED container 
+20. docker rm $(docker ps -aq): delete all the containers 
+21.docker logs <contid/name>: To TROUBLE SHOOT or DEBUG application which is running as a container 
+22.docker logs --tail <nooflines> <contid/name>:
+23 docker top <contid/name>: Disp process details which is running inside a container 
+24.docker stats <contid/name>: Disp resource RAM, CPU consumption details 
+25.docker exec <contid/name> ls <cmd>: to exec commands on a running container 
+26.docker exec -it <contid/name>  /bin/bash: to go inside the container 
+27.docker attach <contid/name?: attach container process or shell to host server 
+28 docker cp : copy files from container to host system or host system to container 
+container to system: cont: sys / 
+docker cp <contname>:</pathofcontfile><systempath>/<filename>
+system to container:
+docker cp <systempath>/<filename><contname>:</pathofcontainerfile>
+29.docker rename <contid/nameold> <newname>: rename the container 
+30 docker commit <contid/name><imagename>: we cam create image from the container 
+
+==============================
+DOCKER NETWORKS:
+==============================
+1.docker network create -d <driver><networkname>: create Custom bridge network 
+docker netwrok create -d bridge flipkartnetwork 
+2.docker network inspect < networknameorid>: inspect network 
+3.docker run -d --name <contname> -p <hostport>:<contport>  --network flipkartnetwork <imagename>: create a container in custom bridge network 
+4. docker network prune: Remove unused networks
+5.docker network rm <networkname>: Remove network 
+6.docker network connect <networkname/id> <containername/id>: can connect container to more than one network using docker CONNECT 
+7.docker network disconnect <networkname/id> <containername/id>
+
+DOCKER VOLUMES:
+=====================
+1.docker run -d --name mongo -v (volumes) ~/mongodbdata:/data/db -e (env var) MONGO_INITDB_ROOT_USERNAME=devdb MONGO_INITDB_ROOT_PASSWORD=devdb@123 --network springappbridge mongo (imagename): create a container with volume back up folder /data/db 
+2.docker volume ls: to list volumes 
+3.-v <volname/Bindmount>:<containerpath>:ro: map volume as read only using this option 
+4.docker volume create -d local mongobkp: create a volume 
+
+
+DOCKER COMPOSE:
+==================-
+
+1.docker-compose config: syntax check 
+2.docker compose up -d : create services/containers or to deploy services with docker compose 
+3.docker-compose down: Remove services/containers
+4.docker-compose -f <customcomposefilename>.yml <command: config, up-d, down>: docker compose wit custom name 
+
+DOCKER SWARM:
+=================
+1.docker stack(collection of services) deploy --compose-file docker-compose.yml <stackname>: to deploy services in docker compose or to create containers in docker compose 
+2.docker run -d --name<contname> -p 8080:8080 <imagename>: in normal server to create a container 
+docker service create --name <servicename> -p <hostport>:<containerport> <imagename>: to create a container in docker swarm 
+3.docker swarm init: initialize docker swarm on private ip 
+4.docker service ls:
+5.docker service ps <servicename>:
+6.docker service scale <servicename>=<NoofReplicas>:
+docker service scale javawebapp=3
+7.docker service create -p 8080:8080 --name mavenwebapp --replicas =2 dockerhandson/maven-web-application: while creating services we can mention no of replicase as this--Replica mode 
+8. docker service create -p 8080:8080 --name mavenwebapp --mode global  dockerhandson/maven-web-application: Global mode 
+9.docker service create -p 8080:8080 --name mavenwebapp --replicas =2  --constraint  'node.role=worker' dockerhandson/maven-web-application: use constraint to create container in specific docker hosts based on condition 
+
+1.docker node update --label-add key=value <nodeid> : add labels to node 
+docker node update --label-add type=appserver 
+use above label in constaints
+docker service create -p 8080:8080 --name mavenwebapp --replicas =1--constraint 'node.labels.type=appserver' dockerhandson/maven-web-application:
+2.docker node update --availability drain <nodeid> : Drain node in cluster 
+3.docker node update --availability active <nodeid>: make node active in cluster 
+4.docker service create -p 8080:8080 --name mavenwebapp --replicas =2 --update-delay 30s --update-parallelism 1 dockerhandson/maven-web-application: create a servicewith rolling update policy 
+5.docker swarm leave: to come out of swarm 
+6.docker node rm <nodename>: remove node from manager 
+
+=================================
+KUBERNETES :
+==================
+
+manifests file :
+
+apiVersion: apps/v1
+kind: Deployment 
+metadata:
+   name:javadep
+spec:
+    strategy:
+       type: RollingUpdate
+          rollingUpdate:
+             maxSurge:
+             maxUnavailable:
+    minReadySeconds:
+      replicas:2
+    selector:
+       matchLabels:
+           app:java
+    template:
+       metadata:
+               name:javapod
+       spec:
+          label:
+                 app:java
+           container:
+          -  name:
+              image:
+              port:
+
+
+
+
+
+
+
+
+ 
+ 
+ 
+ 
+   
+  
+  
+
+
+
+
+
+
+
+
+ 
+ 
+ 
+ 
+
+
+      
+           
+
+
+
+
+
+
+
+
+
