@@ -1,0 +1,1023 @@
+1.Commands to Install Jenkins:
+============================
+sudo su -
+sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io.key
+sudo amazon-linux-extras install epel
+java -version 
+sudo amazon-linux-extras install java-openjdk11
+yum install jenkins 
+service jenkins status 
+service jenkins start 
+
+//security group port 8080 should be open 
+Access : Publicipaddress:8080
+//go to server open the file copy the pwd and continue 
+cat path 
+un:punitha pwd:Puni@1234
+
+--------------------------------------------------
+// To change the hostname of jenkins server 
+vi /etc/hostname 
+jenkins-server 
+service jenkins restart 
+init 6 // command to reboot 
+or hostname jenkins-server --- to change temporarily 
+
+==============================================================
+git- commit code-- github--- pull code-- jenkins --- build code-- maven 
+2.Integrate Github with jenkins:
+=============================================================
+Install Git on jenkins Instance : yum install git -y in server 
+Install Github Plugin on Jenkins GUI: install github plugin in GUI 
+Configure Git on jenkins GUI : Global tool configuration-name git , path : execute whereis git and copy the path in the UI , for now give path also as git 
+
+Pull code from github: 
+----------------------------
+git url:  yankils/Hello-world: Fork into your github repository 
+// give this in scm section of jenkins UI 
+can see the github code : jenkins workspace 
+# cd /var/lib/jenkins/workspace 
+ll
+
+===========================================================
+3.Integrate Maven with Jenkins:
+===========================================================
+Setup maven on jenkins server: 
+Setup Environment Variables : java_HOME, M2, M2_HOME 
+Install maven plugin: 
+Configure maven and java:
+
+Commands to Install maven :
+----------------------------------
+cd /opt
+wget https://dlcdn.apache.org/maven/maven-3/3.8.5/binaries/apache-maven-3.8.5-bin.tar.gz
+tar -xvzf apache-maven-3.8.5-bin.tar.gz
+mv apache-maven-3.8.5 maven // to rename the file 
+cd maven 
+ll 
+cd bin 
+ Set up Env variables :
+-----------------------------
+cd ~ 
+pwd 
+ll -a 
+vi bash_profile 
+after fi 
+M2_HOME=/opt/maven 
+M2=/opt/maven/bin
+// open duplicate session and check java path 
+ # find / -name java-11* : To find path of java 
+JAVA_HOME=/usr/lib/jvm/java-11-openjdk-11.0.13.0.8-1.amzn2.0.3.x86_64
+
+PATH=$PATH:$HOME/bin:$JAVA_HOME:$M2_HOME:$M2 : To tell the system to load env variables 
+source .bash_profile
+echo $PATH : paths are loaded 
+mvn -v : maven is installed 
+
+2) Install maven plugin in jenkins UI: Available-Maven integration select this and install without restart 
+
+Configure : Global tool configuration : Add jdk: name- java-11 directory : give the // uncheck Install automatically option and give the path :// can get it from echo $PATH : /usr/lib/jvm/java-11-openjdk-11.0.13.0.8-1.amzn2.0.3.x86_64
+add maven : name- maven-3.8.3 and path MAVEN_HOME: /opt/maven(folder name which you gave)
+
+3) Run the build job: scm, build -> root pom=pom.xml , goals= clean package 
+
+===============================================================================
+4.Integrating jenkins with Tomcat: Deploy the code on Target Environment Tomcat 
+================================================================================
+SETUP TOMCAT SERVER:
+*setup a linux Ec2 Instance
+*Install java 
+*Configure Tomcat
+*Start Tomcat SERVER
+*Access Web UI on port 8080
+
+amazon-linux-extras install java-openjdk11  // To install Java 
+java -version 
+cd /opt 
+wget https://dlcdn.apache.org/tomcat/tomcat-8/v8.5.79/bin/apache-tomcat-8.5.79.tar.gz 
+tar -xvzf apache-tomcat-8.5.79.tar.gz
+mv apache-tomcat-8.5.79 tomcat 
+cd tomcat 
+ll 
+cd bin 
+./startup.sh
+#Access tomcat server in chrome publicip:8080-> manager App -> 403 Access denied -> we need to update context.xml 
+cd tomcat 
+find / -name context.xml
+vi /opt/tomcat/webapps/host-manager/META-INF/context.xml
+
+Comment <!-- <valve  --> == connet to allow within only 127 
+similarly do for vi /opt/tomcat/webapps/manager/META-INF/context.xml
+cd bin 
+./shutdown.sh 
+./startup.sh 
+# now if we go to manager App it will ask for un and pwd 
+# WE will update users.xml in conf directory :
+// Tomcat installation document in github -simple-devops-project 
+Add users and roles : admin, deployer and tomcat users 
+vi tomcat-users.xml 
+END of file before </tomcat-users>
+<role rolename="manager-gui"/>
+ <role rolename="manager-script"/>
+ <role rolename="manager-jmx"/>
+ <role rolename="manager-status"/>
+ <user username="admin" password="admin" roles="manager-gui, manager-script, manager-jmx, manager-status"/>
+ <user username="deployer" password="deployer" roles="manager-script"/>
+ <user username="tomcat" password="s3cret" roles="manager-gui"/>
+ 
+ Restart service 
+create link files for tomcat startup.sh and shutdown.sh
+ln -s /opt/tomcat/bin/startup.sh /usr/local/bin/tomcatup
+ln -s /opt/tomcat/bin/shutdown.sh /usr/local/bin/tomcatdown
+tomcatdown
+tomcatup
+#Access ip:8080 manager : tomcat, pwd-s3cret== Able to login 
+
+*Integrate Tomcat with Jenkins:
+------------------------------------------
+jenkins ---Deploycode--- Tomcat 
+
+* Install Deploy to Container Plugin : Available install deploy to container plugin  install without restart 
+*Configure Tomcat Server with credentials : Manage jenkins ->jenkins-> Global credentials ->use manager script : un : deployer pwd also same id tomcat -deployer 
+
+job: scm-> hello-world ->build- clean install-> post build actions-> Deploy war/ear to container : webapp/target/webapp.war or **/*.war, context path:leave blank, container :Tomcat-8: credentials : sel from drop down , Tomcat URL:publicipof tomcatserver:8080
+#ARTIFACTS ARE COPIED TO WEBAPPS DIRECTORY OF TOMCAT 
+click on /webapp in Tomcat: can see the content in UI In chrome : This is the content in index.jsp file 
+# to see different content clone the repo update the code and commit and trigger a another build 
+
+Git -> commit code-> github-> pull code-> jenkins ---> deploy code --> tomcat 
+!---build--maven 
+
+*Install git bash and clone the repo in the local 
+git clone repourl 
+cd webapps/src/main 
+vi index.html 
+copy some html code 
+git status 
+git add . 
+git commit -m "updated index"
+git remote  add remoterepourl 
+git remote -v 
+#Create PAT:Personal Access Token 
+git push origin master 
+
+#CI/CD: integrated tomcat with Deploy to container plugin added credentials of tomcat 
+
+Build Triggers:
+==============
+*Build Periodically 
+*Poll SCM
+*Github Webhook 
+
+
+=====================================
+4.Integrating Jenkins With Docker Container:
+========================================
+*Set up Linux Ec2 instance 
+*Install Docker 
+* Start Docker Services 
+* Basic Docker Commands
+url: simple-devops-project 
+Launch EC2 instance 
+Docker Installation Commands:
+-----------------------------------
+sudo su - 
+yum install docker -y 
+service docker status 
+service docker start 
+
+#docker ps : running containers 
+docker ps -a: all containers info it will give 
+
+Create a Tomcat Container:
+----------------------------------
+DOCKER IMAGE - docker run --DOCKER CONTAINER 
+create a image: 
+2 ways: get from docker hub or create a docker file - with docker build command 
+
+Hub.docker.com:
+=================
+search for tomcat images in dockerhub: go with oficial image 
+Pull the image and create a container out of the image with docker run :
+docker pull tomcat 
+docker run -d --name puni -p 8080:8080 tomcat
+docker ps -a 
+
+# To access container in chrome 
+public ip:8080== 404 Error 
+
+Fixing Tomcat Container Issues:
+----------------------------------------
+Tomcat container 404 Error: docker ps 
+Tomcat container is running 
+login to container: docker exec -it puni /bin/bash 
+ls 
+cd webapps
+ll  : application content is not there
+here content is in webapps.dist but looking to webapps so 404 error : move it webapps 
+go to cd webapps.dist then exec this :
+cp -R * ../webapps/
+# Now able to see the Tomcat UI page from chrome from the container 
+
+Launch one more docker container :
+docker run -d --name puni2 -p 8082 tomcat
+This is new container : changes is done only within the container for image it will not get updated 
+
+Do customization:
+DOCKER HUB--- docker pull-- DOCKER FILE-- docker build-- DOCKER IMAGE -- docker run --DOCKER CONTAINER 
+
+DOCKER FILE:
+================
+FROM: to pull base image 
+RUN: To execute commands 
+CMD:To provide defauls for an executing container 
+ENTRYPOINT: To configure a container that will run as an executable 
+WORKDIR: To sets the working directory 
+COPY: To copy a directory from your local machine to a docker container 
+ADD: To copy files and folders from your local machine to docke rcontainers 
+EXPOSE: informs Docker that the container listens on specified network ports a t a runtime 
+ENV: To set environment variables 
+
+INSTALL TOMCAT ON CENTOS:
+================================
+Pull centos from dockerhub: FROM
+install java : RUN
+create /opt/tomcat dir : RUN
+change workdir to /opt/tomcat : WORKDIR
+Downlaod tomcat packages : ADD/RUN
+Extract tar.gz file : RUN
+Rename to tomcat directory : RUN
+Tell to docker that it runs on port 8080:  EXPOSE
+Start tomcat services : CMD
+
+DOCKER FILE:
+=============
+FROM centos:latest
+RUN cd /etc/yum.repos.d/
+RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
+RUN sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+RUN yum install java -y
+RUN mkdir /opt/tomcat
+WORKDIR /opt/tomcat
+ADD https://dlcdn.apache.org/tomcat/tomcat-8/v8.5.79/bin/apache-tomcat-8.5.79.tar.gz  .
+RUN tar -xvzf apache-tomcat-8.5.79.tar.gz
+EXPOSE 8080
+CMD["/opt/tomcat/bin/catalina.sh", "run"]
+
+docker build -t <imagename> . 
+docker run -d --name <containername> -p <hostport>:<containerport>  <imagename>
+
+Earlier we did this change logging into container can also do in docker file: 
+FROM tomcat:latest
+RUN cp -R /usr/local/tomcat/webapps.dist/* /usr/local/tomcat/webapps
+
+INTEGRATE DOCKER WITH JENKINS:
+========================================
+*create a dockeradmin user : should be added to docker group
+*Install publish over ssh plugin : can also use scp but this is easy 
+Add Dockerhost to jenkins configure system 
+
+cat /etc/passwd 
+cat /etc/group 
+# create a user docker and add to docker group 
+useradd dockeradmin
+passwd dockeradmin
+id dockeradmin /puni
+usermod -aG docker dockeradmin
+
+#EC2 password less Authentication:
+vi /etc/ssh/sshd_config 
+uncomment passwdauthentication yes and comment passwordauthentication No
+WE CAN LOGIN WITHOUT PASSWORD: FOR THAT CREATE SSH KEYS
+service sshd reload 
+
+Jenkins:
+=========
+step2:Install publish over ssh plugin :
+step 3: manage jenkins -> configure system-> publish over SSH : ssh server-> ADD - servname- dockerhost, hostname- private ip address , username- docker admin, password-> advanced -> enable use password based authentication -> give pwd or we can also give key login to docker server 
+sudo su -dockeradmin
+ssh-keygen 
+cd /home/dockeradmin/.ssh 
+for now we are going with pwd based authentication 
+
+Jenkins job to build and copy artifacts on to dockerhost:
+============================
+scm-> build -> post build action: send build artifacts over ssh 
+name: dockerhost 
+source files: webapp/target/*.war
+Remove prefix: webapp/target
+
+# in home/dockeradmin webapp.war file is copied 
+FROM tomcat:latest
+RUN cp -R /usr/local/tomcat/webapps.dist/* /usr/local/tomcat/webapps
+COPY ./*.war /usr/local/tomcat/webapps
+
+docker build -t p .
+docker run -d --name pu -p 8080:8080 p
+#access appln and access with port ---> Do this in jenkins itself /webapp 
+Build settings -post build actions -> EXEC commands-> cd /opt/docker 
+docker build -t regappv1
+docker run -d --name regapp -p 8080:8080 regappv1
+# Docker image and container is created in docker host 
+
+JENKINS JOB TO AUTOMATE CI/CD TO DEPLOY APPLICATION ON DOCKER CONTAINER:
+==================================
+we cannot create multiple containers with same name : configure : exec commands 
+cd /opt/docker 
+docker stop registerapp
+docker rm registerapp // before creating cont deleting the cont 
+docker run -d --name regapp -p 8080:8080 regappv1
+
+# Instead of writing all commands in the jenkins so we can take adv of deployment tool as ansible exec this in efficient way .. installing additional packages, creating new users, updating configuration
+
+================================  
+  Ansible to create containers:
+ ===============================
+  Any chanes commit thru github jenkins pull latest code and build it with maven tool and it will create docker image and deploy docker containers on docker host : Here jenkins is used as ci/cd tool 
+  
+  We can use Ansible as deployment tool: so that ansible does configuration along with Ansible we can also use docker hub or nexus or Artifactory 
+  
+  in this case: jenkins take the code from github build artifacts and copy the artifacts to Ansible server
+  
+  Ansible: creates images and deploy the containers with help of docker file create image whichis stored in docker hub 
+  
+  Ansible: push image to docker hub and deploy container 
+  
+  GIT--pull code---JENKINS--build code--MAVEN (JENKINS)-- copy artifacts--ANSIBLE --push image --DOCKER HUB-- ANSIBLE-- deploy container 
+  
+  ANSIBLE INSTALLATION COMMANDS:
+  ===========================
+  *Setup Ec2 instance
+  *Setup hostname 
+  *Create ansadmin user
+  *Add users to sudoers file
+  *Generate SSH keys
+  *Enable Password based login 
+  *Install ansible 
+  
+  Launch an Ec2 instance 
+  #change hostname 
+  vi /etc/hostname 
+  ansible-server 
+  init 6 // reboot
+  
+  useradd ansadmin
+  passwd ansadmin
+  #to add to sudoers
+  visudo
+  EOF
+  ansadmin  ALL=(ALL)  ALL
+  #enable password less authentication 
+  vi /etc/ssh/sshd_config
+  uncomment password authentication yes and comment password authentication no 
+  service sshd reload
+  login as ansadmin in toehr session and check 
+  #Generate ssh keys 
+ ssh-keygen
+  private key store as id_rsa public key: id_rsa.public
+  #now install Ansible server 
+  sudo amazon-linux-extras install ansible2
+  #with ansible python will also get installed 
+  python --version 
+  ansible --version 
+  
+  Manage DockerHost with Ansible:
+  ====================================
+  write a playbook which tells how to run a docker container:
+  ON DOCKER HOST DO:
+  *Create ansadmin 
+  *Add ansadmin to sudoers files 
+  *Enable password based login 
+  
+  On Ansible Node:
+  *Add to host files : docker host ip address in inventory file
+  *Copy ssh keys: Ansible public key to docker host ansadmin server  
+  * Test the connection : execute some ping command 
+  
+  In the Docker Host: login 
+  useradd ansadmin 
+  passwd ansadmin /puni
+  visudo 
+  type shift g : to come to eof
+  ansadmin  ALL=(ALL)  NOPASSWD=ALL give this below wheel 
+  we have already done password less authentication can check with: 
+
+Need to add docker host as a managed node in ANSIBLE SERVER : 
+can give in inventory 
+# add docker host ip address by executing ifconfig in docker host  inet beside one is the private ip address 
+
+Need to Copy ansadmin user keys to target ansadmin user in ANSIBLE SERVER:
+sudo su - ansadmin
+ssh-keygen
+ll -la
+cd .ssh
+ll
+# has both provate key and public key copy this public key into target system ip address of docker host 
+ssh copy-id dockerhost private -ip ( same which we got from inet)
+# no of keys added :1
+cat .ssh/id_ras.pub: can see the public key copied 
+
+Test the connection : to remote system 
+Ansible all -m ping 
+all(hosts) 
+ansible all -m command -a uptime: To check the uptime 
+
+NO ANSIBLE IS ABLE TO CONNECT TO DOCKER HOST WITH SSH CONNECTION 
+
+INTEGRATE ANSIBLE WITH JENKINS:
+========================================
+Jenkins copy the artifacts to Ansible system 
+Ansible create image and deploy containers on docker host 
+
+Jenkins(build activity)-----------Ansible(DEPLOYMENT ACTIVITIES)
+
+WHEN WE integrated jenkins with docker :
+created dedicated user in docker host , and enabled password based authentication then installed publish over ssh plugin and then we went to configure system added docker host 
+same thing we need to do here 
+already all steps done only now we have to add the in configure system 
+
+Go to manage jenkins -> configure system -> publish ovr ssh -> add Ansible system 
+name- ansible-sever , hostname: private ip of ansible - ifconfig inet one , username - ansadmin , password- advanced-enable use password authentication give password of ansadmin--> Test it 
+
+JENKINS: GLOBAL TOOL CONFIGURATION: TOOLS PATH , CONFIGURE SYSTEM: SSH DIFFERENT TOOLS USERNAME, PWD ( TO ADD SSH SERVERS)
+
+INTEGRATION WITH ANSIBLE TO JENKINS IS DONE 
+
+Create a job to build and copy artifacts to ansible: 
+=============================
+copy job duild and deploy-job 
+change: publish over ssh : choose ansible server, source files same -webapps/target/*.war , remove prefix: webapp/target
+Remote directory://opt//docker( copy artifacts to ansible this dir)
+Exec commands: we need not build docker file comand and docker run command here in exec commands 
+create this dir : in ansible : 
+cd /opt 
+sudo mkdir docker 
+sudo chown ansadmin:ansadmin docker
+# change ownership from root to ansadmin 
+
+TRIGGER THE JOB: NOW THE WAR FILE COPIED TO THE ANSIBLE SERVER 
+ll
+webapp.war
+# NOW we want to create image and push to docker hub 
+for this install docker into ansible system:
+sudo yum install docker 
+#Add ansadmin to docker group 
+sudo service docker start 
+sudo service docker status
+#Create a docker file 
+vi Dockerfile
+FROM tomcat:latest
+RUN cp -R /usr/local/tomcat/webapps.dist/* /usr/local/tomcat/webapps
+COPY ./*.war /usr/local/tomcat/webapps
+
+#create a image 
+docker build -t regapp:v1 . 
+permission error 
+sudo chmod  777 /var/run/docker.sock
+#create container 
+docker run -t --name regapp-server -p 8081:8080 regapp
+#Access container 
+sec group 8081-9000
+public ip:8081/webapp 
+#TILL NOW WE RUN THE COMMANDS MANUALLY INSTEAD WE CAN WRITE A PLAYBOOK 
+
+Using Ansible to create containers:
+===================================
+Image is available in ansible system we have to push image to dockerhub from ansible push image or pull image and deploy container 
+
+ANSIBLE PLAYBOOK: TO CREATE A IMAGE
+======================
+
+cd /opt
+ll 
+cd docker 
+PLAYBOOK: run ansible-playbook - i (inventory) 
+def inventory: /etc/ansible/hosts: what ever servers are there it will run playbook 
+add ansible server here
+take private ip of ansible server 
+ifconfig 
+sudo vi /etc/ansible/hosts
+[ansible] -- group
+ip 
+[dockerhost]
+ip
+ansible all -a uptime 
+# error for ansible server we need to add ansible ip addresses 
+ssh-copy-id ansible private ip address 
+or ssh-copy-id localhost 
+Now execute ansible all -a uptime 
+vi regapp.yml
+can use docker_image also instead of command module
+---
+- hosts: ansible
+  tasks:
+  - name: create docker image
+    command: docker build -t regapp:latest .
+    args:
+      chdir: /opt/docker
+
+ansible-playbook regapp.yml
+
+COPY IMAGE TO DOCKER HUB USING ANSIBLE:
+=================================================
+
+login to docker hub acct from ansible server :
+
+docker login 
+docker push punithanarasimha/regapp:latest
+docker images 
+docker tag imageid username /imagename:latest
+# one more image is created with regapp:latest 
+docker push valaxy/regapp:latest
+=============Succesfully pushed the image to dockerhub===============
+IF WE CHECK DOCKER HUB IMAGE WILL BE PUSHED 
+
+This also we can do it through playbook instead of doing manually 
+
+vi regapp.yml 
+# ADD TWO MORE ONE FOR TAGGING OTHER FOR PUSH THE IMAGE TO DOCKER HUB 
+
+---
+- hosts: ansible
+  tasks:
+  - name: create docker image
+    command: docker build -t regapp:latest .
+    args:
+      chdir: /opt/docker
+  - name: create tag and push image into dockerhub
+    command: docker tag regapp:latest punithanarasimha/regapp:latest
+  - name: push docker image
+    command: docker push punithanarasimha/repapp:latest
+ansible-playbook regapp.yml --limit localhost : run only on this host 
+
+copy this playbook to jenkins: configure -> post build actions-> exec aommands 
+ansible-playbook /opt/docker/regapp.yml 
+
+if build giving unstable:
+ou can enable verbose output to get more info of ssh Transfer : https://web.archive.org/web/20181012120424/https://wiki.jenkins.io/download/attachments/53608875/pos-server-advanced.png?version=2&modificationDate=1321576167000&api=v2
+
+'Çlick' Advanced.. button below 'Name' textbox & enable 'Verbose output in console'
+
+First it does file Transfer then runs command.
+
+So try running command in sequence first by correcting typo on 'npm install'
+
+And use echo $? after every command run
+
+THIS WILL EXECUTE ANSIBLE PLAYBOOK : Docker image is updated in ansible and uploaded in docker hub 
+
+# IMPPP:jenkins copy the artifacts to ansible, ansible creates the image and push the image to docker hub and create container in ansible itself 
+
+How to create container on dockerhost using ansible playbook:
+=============================
+create one more playbook which creates a container 
+vi deployregapp.yml
+
+---
+- hosts: dockerhost
+  tasks:
+  - name: create container
+    command: docker run -d --name repapp-server -p 8080:8080 punithanarasimha/regapp:latest
+    
+  
+  # if permission issue : chmod 777 /var/run/docker.sock
+  #IF WE RUN THE PLAYBOOK AGAIN WE GET ERROR THAT CONTAINER IS ALREADY IN USE WITH SAME NAME TO SOLVE REFER BELOW:
+  
+  
+  Continous Deployment of docker container using ansible playbook:
+  ================================
+  *Remove existing container 
+  *Remove existing image 
+  *Create a new container 
+  
+ update the playbook vi deploy.yml:
+ ====================================
+ 
+ ---
+- hosts: dockerhost
+  tasks:
+  - name: stop the  container
+    command: docker stop rego
+
+  - name: remove the container
+    command: docker rm rego
+
+  - name: remove the image
+    command: docker rmi  punithanarasimha/regapp:latest
+
+  - name: create container
+    command: docker run -d --name repapp-serve2  -p 8080:8080 punithanarasimha/regapp:latest
+
+===============================================================
+--------------------------------------------------------------------------------
+JENKINS CI/CD TO DEPLOY ON CONTAINER USING ANSIBLE :
+-----------------------------------------------------------------------------------
+=================================================================
+
+Everything is automated :
+Commit the changes and everything is automated in jenkins 
+
+configure: exec command exec one more playbook give ; at the end and add 
+ansible-playbook /opt/docker/regapp.yml;
+sleep 10
+ansible-playbook /opt/docker/deploy.yml 
+
+Go and change the code in index.html and push the code git commit -a -m "puni"
+git push origin master 
+poll scm enable in jenkins 
+
+Whenever there is a change in the code jenkins will execute the source code and build code and copy the artifacts to ansible.. ansible will delte the existing image and container and create a new image and push to docker hub and create a new container: ansible ip:8080/webapp can access the application 
+#ISSUE HERE IS :WHEN EVER WHEN CHANGES TERMINATING EXISTING CONTAINER AND CREATING NEW CONTAINER DURING THIS TIME USER WILL NOT HAVE ACCESS TO CONTAINER SO FOR THIS WE HAVE CONTAINER ORCHESTRATION TOOL FOR HIGH AVAILABILITY AND FAULT TOLERANCE 
+
+=================================
+KUBERNETES:
+==================================
+When docker is down it will not come up automatically so we deploy docker application not as containers but as a POD 
+
+set up: Kubeadm and kops
+cloud: EKS 
+
+=================================
+kubernetes installation with EKS commands:
+==================================
+Using command line not UI: eksctl 
+Ec2 instance : install use as boot strap image 
+setup kubectl:
+-Prequisites:
+an EC2 Instance:
+Install AWSCLI latest verison:
+Setup kubectl:
+a. Download kubectl version 1.21
+b. Grant execution permissions to kubectl executable
+c. Move kubectl onto /usr/local/bin
+d. Test that your kubectl installation was successful
+
+curl -o kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.21.2/2021-07-05/bin/linux/amd64/kubectl
+chmod +x ./kubectl
+mv ./kubectl /usr/local/bin 
+kubectl version --short --client
+Setup eksctl
+a. Download and extract the latest release
+b. Move the extracted binary to /usr/local/bin
+c. Test that your eksclt installation was successful
+
+curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+sudo mv /tmp/eksctl /usr/local/bin
+eksctl version
+Create an IAM Role and attache it to EC2 instance
+Note: create IAM user with programmatic access if your bootstrap system is outside of AWS
+IAM user should have access to
+IAM
+EC2
+CloudFormation
+Note: Check eksctl documentaiton for Minimum IAM policies
+
+Create your cluster and nodes:
+
+eksctl create cluster --name cluster-name  \
+--region region-name \
+--node-type instance-type \
+--nodes-min 2 \
+--nodes-max 2 \ 
+--zones <AZ-1>,<AZ-2>
+
+example:
+eksctl create cluster --name valaxy-cluster \
+   --region ap-south-1 \
+--node-type t2.small \
+
+To delete the EKS cluster:
+
+eksctl delete cluster valaxy --region ap-south-1
+Validate your cluster using by creating by checking nodes and by creating a pod
+
+kubectl get nodes
+kubectl run tomcat --image=tomcat 
+Deploying Nginx pods on Kubernetes
+Deploying Nginx Container
+
+kubectl create deployment  demo-nginx --image=nginx --replicas=2 --port=80
+# kubectl deployment regapp --image=valaxy/regapp --replicas=2 --port=8080
+kubectl get all
+kubectl get pod
+Expose the deployment as service. This will create an ELB in front of those 2 containers and allow us to publicly access them.
+
+kubectl expose deployment demo-nginx --port=80 --type=LoadBalancer
+# kubectl expose deployment regapp --port=8080 --type=LoadBalancer
+kubectl get services -o wide
+FOLLOW THIS FOR INSTALLATION:
+==========================================================
+EC2 instance :t2 micro
+aws --version 
+# commands to install latest version of aws 
+$ curl "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip"
+unzip awscli-bundle.zip
+sudo ./awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
+# install kubectl 
+curl -o kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/1.22.6/2022-03-09/bin/linux/amd64/kubectl
+chmod +x kubectl 
+mv kubectl /usr/local/bin
+echo $PATH
+kubectl version 
+# install eksctl 
+curl --silent --location "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp
+cd /tmp 
+mv eksctl /usr/local/bin
+eksctl version
+# create an IAM role 
+IAM dashboard -> select -> create role-> sel EC2 -> previlages EC2fullAccess
+cloudformationfullaccess, iamfullaccess, use AdministrativeAccess : managed by AWS 
+create a role : add to EC2 -> Actions-> security -> modify Iam role -- attach role to EC2 instance 
+#Create cluster 
+eksctl create cluster --name valaxy-cluster \
+   --region ap-south-1 \
+--node-type t2.small 
+// This deploys stack in cloud formation in UI this takes 22 mins to complete the set up 
+kube-config file: who has access to this file can comminicate with our EKS cluster 
+cat /root/.kube/config 
+Go to EC2 Service 
+This has certifacte authority 
+Go to EC2 service- 2 new t2 small instances created here 
+# To execute commands use :
+Kubectl get nodes 
+kubectl get all 
+#create pod 
+Kubectl run webapp --image=httpd
+kubectl get pods 
+--------------------------------------
+
+we can also setup k8s using KOPS and kubeadm 
+
+Deploying ngnix Container:
+----------------------------------
+Deployment create replicaset creates pods 
+To access pods we will create service of type Load balancer 
+
+kubectl create deployment  demo-nginx --image=nginx --replicas=2 --port=80
+kubectl get all 
+kubectl get pod 
+
+Expose the deployment as service. This will create an ELB in front of those 2 containers and allow us to publicly access them.
+
+kubectl expose deployment demo-nginx --port=80 --type=LoadBalancer
+# kubectl expose deployment regapp --port=8080 --type=LoadBalancer
+kubectl get services -o wide
+This creates a Load balancer in AWS: 
+
+#Access with lbname:80 can see ngnix webpage 
+With commands deploying not good practice so we write manifest files 
+
+Create 1st Manifest file:
+===========================
+Delete the deployment and load balancer created with commands 
+
+# pod label= service selector
+
+   In case of some failure happens to our resources k8s recreates it 
+   
+   Instead of we running the k8s commands we can tell Ansible to run the commands :
+   
+   ip:8080/webapp
+   
+   ==============================================
+   Integrating Ansible with Kubernetes:
+  ==============================================
+  ON BOOTSTRAP SERVER:
+  *CREATE ANSADMIN USER
+  *ADD ANSADMIN USER TO SUDOERS FILES
+  *ENABLE PASSWORD BASED LOGIN 
+  
+  ON ANSIBLE NODE:
+  *ADD TO HOSTS FILES : add bootstrap image to inventory file 
+  *COPY SSH KEYS
+  *TEST THE CONNECTION
+  
+  // similar to docker integration 
+  
+  Go to k8 bootstrap image :
+  useradd ansadmin
+  visudo 
+  ansadmin ALL=(ALL) NOPASSWD:ALL
+  enable pwd based authentication 
+  vi /etc/ssh/sshd_config 
+  passwordAuthentication yes uncomment no commend 
+  service sshd reload 
+  #NOW WE ARE ABLE TO LOGIN WITH ANSADMIN USER IN  BOOTSTRAP SERVER 
+  SET UP PASSWORDFOR ANSADMIN USER 
+  passwd ansadmin
+  
+  # ansible lo unde user in k8s create sesi daniki anni access icchi passwordless authentication enable sesnam k8s server lo 
+  
+  
+  
+  Go to ansible server :
+  ========================
+  sudo su - ansadmin 
+  cd /opt/docker 
+  we have two playbooks here ine for cerating image and pushing to docker hub one more to deploy as docker container : instead we deploy as a kubernetes pod 
+  
+  #now we have to add k8s bootstrap image to ansible  hostfile 
+   we are cretaing inventory file 
+  vi hosts 
+ go to k8s server get ip address ifconfig 
+ 
+ [kubernetes]
+ ip 
+ 
+ [ansible]
+ ansible server itself 
+ 
+ localhost 
+ 
+ #ssh configuration 
+ ssh-copy-id privateip of k8s
+ password give 
+ ansible -i hosts all -a uptime: ping to all servers uptime in inventory file 
+ 
+ #Inventory file lo k8s ip add chesi ssh connection connecting to k8s from ansible server and testing with uptime module of ansible 
+ 
+ CREATE ANSIBLE PLAYBOOK FOR DEPLOY AND SERVICE FILES:
+ ======================================
+ login to ansible server :
+ -------------------------------
+ create a yaml file for executing the deployment and service 
+ 
+ ---
+- hosts: ansible
+  tasks:
+  - name: create docker image
+    command: docker build -t regapp:latest .
+    args:
+      chdir: /opt/docker
+  - name: create tag and push image into dockerhub
+    command: docker tag regapp:latest punithanarasimha/regapp:latest
+  - name: push docker image
+    command: docker push punithanarasimha/regapp:latest
+
+---
+- hosts: kubernetes
+  become: true
+  user: root 
+  tasks:
+  - name: deploy regapp on kubernetes
+    command: kubectl apply -f /root/puni/serv.yml
+
+---
+- hosts: kubernetes
+# become: true
+  user: root
+  tasks:
+  - name: deploy registration app on kuberenetes
+    command: kubectl apply -f 
+    /root/puni/dep.yml
+
+ssh-copy-id root@k8sip
+passwd in k8s server 
+ansible-playbook -i /opt/docker/hosts kub.yml
+NOW IF YOU GO ANC CHECK IN KUBERNETES SERVER 
+kubectl get pods 
+execute service file as well 
+ansible-playbook -i /opt/docker/hosts svc.yml 
+
+WE HAVE EXECUTE THE PLAYBOOK AS ROOT USER :
+
+CREATE JENKINS JOB FOR KUBERNETES :
+until now we deploy and service files with ansible we use jenkins job initialize ansible to exec deploy and service files 
+
+create job-> deploy on kubernetes ->send build over artifacts choose ansible server in exec commands : ansible-playbook -i /opt/docker/hosts 
+kub.yml;
+ansible-playbook -i /opt/docker/hosts serv.yml
+ 
+ check in k8s 
+ kubectl get all 
+ service and rs are created 
+This is make ansible to initialize 
+# JENKINS EXECUTE PLAYBOOK EXECUTE DEPLOYMENT OF KUBERNETES 
+ put service content also in same file 
+ 
+ If any change in src code with k8s should deploy the latest code :
+IMP: create a CI JOB: hello-world pull the code from github build in jenkins run the playbook which creates the image and push the image to docker hub 
+ 
+ new item-> copy -> build and deploy job 
+ 
+ create an image in ansible and push to docker hub :
+ scm-> build clean install -> poll scm -> post build step -> ansible
+ source file: webapp/target/*.war
+ remove prefix: webapp/target
+remote directory: //opt//docker 
+exec command: ansible-playbook /opt/docker/pp.yml
+---> CREATE the IMAGE AND PUSH TO DOCKER HUB 
+
+
+login ti ansible server :
+/opt/docker 
+webapp.war  file is copied 
+docker images 
+are present 
+//latest image is created and present in docker hub 
+
+when CI job is success CD job should get executed :
+CI JOB: we are changing the code in our workstation pushing to github from their jenkins pulling code and building with help of maven and generating the war file and pushing the artifact/war file to ansible server at same it is Executing ansible playbook which can create an image with the artifact and save it to docker hub 
+CD job: initialize the ansible playbook which will execute the deployment and service file s/mirrorlist/#mirrorlist/g
+
+combine both : once ci job is complete cd should trigger 
+go to CI: CONFIGURE-> AD DPOST BUILD ACTIONS-> BUILD OTHER PROJECTS -> TRIGGER ONLY IF STABLE : add CD job here ( take latest image from docker hub and do the deployment in k8s cluster )
+
+WHEN CHANGE IN CODE NOT ABLE TO FIND CHANGES SO WE HAVE TO ADD :update deployment if image updated in docker hub 
+NEW CHANGES IN THE WEB BROWSER 
+
+- name: update deployment with new pods if image updated in docker hub
+    command: kubectl rollout restart deployment.v1.apps/valaxy-deployment (deployment name) in k8s 
+    
+    deployment.apps/valaxy-regapp 
+    kubectl get all : get deployment name from k8s server 
+
+END TO END DEPLOYMENT:
+only commit enough -> enable poll scm -> jenkins replace war file and copy the image to docker hub repo cd job shud exec cd job shud terminate old pods and launch new pods with application 
+
+PROMETHEUS INSTALLATION COMMANDS:
+=============================================
+
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+kubectl create namespace namespacename 
+helm search repo reponame (prometheus-community)
+helm chart 
+# install helm chart to see the res 
+helm template prometheus-community(reponame) (chartname)/prometheus
+This will cerate deployment, service accounts, tole rolebinding , kub state metrics 
+# to see volumes 
+helm show values prometheus-community/prometheus
+#alert managers and volume taking this vol file and update the alert manager and while installing use this vol file .. in custom values files spec whom to send alerts when to send emails 
+now deploy helm chart with def values 
+helm install prometheus prometheus-community/prometheus -n prometheous
+helm ls -n prometheous 
+#kubectl get all -n prometheous 
+alert managers services deployments all are created 
+#to access this internet need to create ingress rules
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingressrules
+  namespace: prometheous
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: prometheus.mithuntechdevops.co.in
+    http:
+      paths:
+      - backend:
+          serviceName: prometheus-server
+          servicePort: 80
+  - host: alertmanager.-mithuntechdevops.co.in
+    http:
+      paths:
+      - backend:
+          serviceName: prometheus-alertmanager
+          servicePort: 80
+
+have to do DNS mapping in ROUTE 53 : create a record set :prometheus.mithuntechdevops.co.in 
+alert manager one more record 
+now access in chrome : prometheus.mithuntechdevops.co.in 
+
+helm repo add grafana https://grafana.github.io/helm-charts
+helm install my-release grafana/grafana
+
+
+
+  
+  
+  
+  
+  
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
